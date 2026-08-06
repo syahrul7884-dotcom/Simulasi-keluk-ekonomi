@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulasi Ekonomi Bidangan</title>
+  <style>
+    :root{--ink:#182536;--muted:#5e6d7f;--blue:#1769df;--green:#148264;--red:#c44e5c;--orange:#dc7c22;--card:#fff}*{box-sizing:border-box}body{margin:0;background:#f4f8fc;color:var(--ink);font-family:Arial,sans-serif}.app{max-width:1200px;margin:auto;padding:30px 18px}h1{margin:0 0 7px;font-size:clamp(1.7rem,4vw,2.35rem)}.intro{margin:0 0 22px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,3fr) minmax(260px,1fr);gap:20px}.plot,.panel{background:var(--card);border:1px solid #dce6f0;border-radius:16px;box-shadow:0 10px 26px #27456812}.plot{padding:14px}canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}.hint{font-size:.84rem;color:var(--muted);text-align:center;margin:7px 0 0}.panel{padding:20px}.tag{margin:0 0 7px;color:var(--blue);font-size:.72rem;font-weight:bold;letter-spacing:.1em}.panel h2{font-size:1.3rem;margin:0}.panel p:not(.tag){line-height:1.45;color:var(--muted)}.modes{display:grid;gap:8px;margin:16px 0}.modes button{border:1px solid #cbd7e4;background:#fff;border-radius:9px;padding:10px;text-align:left;color:var(--ink);font:inherit;cursor:pointer}.modes button.active{background:#eaf3ff;border-color:var(--blue);color:#0955bd;font-weight:bold}.control{border-top:1px solid #e5edf5;padding-top:15px}.control label{display:block;font-size:.83rem;color:var(--muted);margin-bottom:7px}.control strong{color:var(--blue)}input[type=range]{width:100%;accent-color:var(--blue)}.difference{margin:17px 0 0;padding:12px;border-left:4px solid var(--blue);background:#f7faff;font-size:.86rem;line-height:1.45}.legend{font-size:.78rem;color:var(--muted);border-top:1px solid #e5edf5;margin-top:18px;padding-top:13px;display:grid;gap:7px}.sw{display:inline-block;width:25px;border-top:3px solid;margin-right:7px;vertical-align:middle}.dashed{border-top-style:dashed}@media(max-width:760px){.app{padding:22px 12px}.layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Simulasi Ekonomi dan Tak Ekonomi Bidangan</h1>
+    <p class="intro">Bandingkan pergerakan di sepanjang LAC dengan peralihan keseluruhan keluk LAC.</p>
+    <section class="layout">
+      <div class="plot"><canvas id="chart" width="900" height="560" role="img" aria-label="Keluk kos purata jangka panjang"></canvas><p class="hint" id="hint"></p></div>
+      <aside class="panel" aria-live="polite">
+        <p class="tag">KEADAAN</p><h2 id="title"></h2><p id="description"></p>
+        <div class="modes">
+          <button data-mode="internalEconomy" type="button">Ekonomi Bidangan Dalaman</button>
+          <button data-mode="internalDiseconomy" type="button">Tak Ekonomi Bidangan Dalaman</button>
+          <button data-mode="externalEconomy" type="button">Ekonomi Bidangan Luaran</button>
+          <button data-mode="externalDiseconomy" type="button">Tak Ekonomi Bidangan Luaran</button>
+        </div>
+        <div class="control"><label id="rangeLabel" for="range"></label><input id="range" type="range"><strong id="rangeValue"></strong></div>
+        <div class="difference" id="difference"></div>
+        <div class="legend"><span id="currentLegend"><i class="sw" style="border-color:#1769df"></i>LAC0</span><span id="baseLegend"><i class="sw dashed" style="border-color:#8395aa"></i>LAC0</span><span id="pointLegend"><i class="sw" style="border-color:#dc7c22"></i>Titik firma</span></div>
+      </aside>
+    </section>
+  </main>
+  <script>
+  (()=>{
+    const c=document.getElementById('chart'),ctx=c.getContext('2d'),W=c.width,H=c.height,m={l:78,r:36,t:38,b:68};
+    const x=q=>m.l+q*(W-m.l-m.r)/100,y=v=>H-m.b-v*(H-m.t-m.b)/100;
+    const base=q=>20+.012*Math.pow(q-55,2); let mode='internalEconomy',value=28;
+    const data={
+      internalEconomy:{title:'Ekonomi Bidangan Dalaman',desc:'Firma menambah output dan kos purata jangka panjang menurun.',label:'Kuantiti firma (Q)',min:8,max:54,unit:' unit',difference:'Titik firma bergerak menuruni bahagian kiri keluk LAC yang sama. Punca datang daripada pengurusan, teknologi atau pengkhususan dalam firma.'},
+      internalDiseconomy:{title:'Tak Ekonomi Bidangan Dalaman',desc:'Firma menambah output tetapi kos purata jangka panjang meningkat.',label:'Kuantiti firma (Q)',min:56,max:96,unit:' unit',difference:'Titik firma bergerak menaiki bahagian kanan keluk LAC yang sama. Punca datang daripada masalah koordinasi atau kawalan dalam firma.'},
+      externalEconomy:{title:'Ekonomi Bidangan Luaran',desc:'Perkembangan industri mengurangkan kos firma.',label:'Kekuatan faktor luaran',min:0,max:12,unit:' tahap',difference:'Seluruh keluk LAC beralih ke bawah. Punca datang daripada faktor luar firma seperti infrastruktur, kemahiran buruh atau pembekal yang lebih baik.'},
+      externalDiseconomy:{title:'Tak Ekonomi Bidangan Luaran',desc:'Perkembangan industri meningkatkan kos firma.',label:'Kekuatan faktor luaran',min:0,max:12,unit:' tahap',difference:'Seluruh keluk LAC beralih ke atas. Punca datang daripada faktor luar firma seperti kesesakan, kenaikan harga input atau pencemaran.'}
+    };
+    function text(t,px,py,color,align='left'){ctx.fillStyle=color;ctx.font='bold 14px Arial';ctx.textAlign=align;ctx.fillText(t,px,py);ctx.textAlign='left'}
+    function axes(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#e4ecf4';ctx.lineWidth=1;for(let n=0;n<=100;n+=20){ctx.beginPath();ctx.moveTo(x(n),y(0));ctx.lineTo(x(n),y(100));ctx.stroke();ctx.beginPath();ctx.moveTo(x(0),y(n));ctx.lineTo(x(100),y(n));ctx.stroke()}ctx.save();ctx.globalAlpha=.12;ctx.translate(x(53),y(46));ctx.rotate(-.26);ctx.fillStyle='#1769df';ctx.font='bold 27px Arial';ctx.textAlign='center';ctx.fillText('MSK Ekonomi Channel',0,0);ctx.restore();ctx.strokeStyle='#283c52';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x(0),y(100));ctx.lineTo(x(0),y(0));ctx.lineTo(x(100),y(0));ctx.stroke();ctx.fillStyle='#52677c';ctx.font='13px Arial';ctx.fillText('Kos Purata Jangka Panjang',10,26);ctx.fillText('Kuantiti Output',W-112,H-20)}
+    function lac(fn,color,dashed=false){ctx.save();ctx.setLineDash(dashed?[8,6]:[]);ctx.strokeStyle=color;ctx.lineWidth=dashed?2:3;ctx.lineCap='round';ctx.beginPath();for(let q=0;q<=100;q++){q?ctx.lineTo(x(q),y(fn(q))):ctx.moveTo(x(q),y(fn(q)))}ctx.stroke();ctx.restore()}
+    function arrow(x1,y1,x2,y2,color){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();const a=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-9*Math.cos(a-.45),y2-9*Math.sin(a-.45));ctx.lineTo(x2-9*Math.cos(a+.45),y2-9*Math.sin(a+.45));ctx.closePath();ctx.fill()}
+    function render(){const d=data[mode],external=mode.includes('external'),economy=mode.includes('Economy'),shift=external?(economy?-value:value):0,fn=q=>base(q)+shift,currentName=external?(economy?'LAC1':'LAC2'):'LAC0',labelQ=99;axes();if(external){lac(base,'#8395aa',true);if(value>0)text('LAC0',x(labelQ),y(base(labelQ))+18,'#6f8296','right')}lac(fn,'#1769df');const q=external?55:value,cv=fn(q);ctx.fillStyle='#dc7c22';ctx.beginPath();ctx.arc(x(q),y(cv),6,0,Math.PI*2);ctx.fill();if(external&&value>0){arrow(x(70),y(base(70)),x(70),y(fn(70)),economy?'#148264':'#c44e5c');text(economy?'LAC1 beralih ke bawah':'LAC2 beralih ke atas',x(72),y(fn(70))-9,economy?'#148264':'#c44e5c');text(currentName,x(labelQ),y(fn(labelQ))-8,'#1769df','right')}else if(external){text('LAC0 = '+currentName,x(labelQ),y(base(labelQ))-8,'#1769df','right')}else{text('Titik firma',x(q)+9,y(cv)-9,'#dc7c22');text('LAC0',x(labelQ),y(fn(labelQ))-8,'#1769df','right')}document.getElementById('title').textContent=d.title;document.getElementById('description').textContent=d.desc;document.getElementById('rangeLabel').textContent=d.label;document.getElementById('rangeValue').textContent=value+d.unit;document.getElementById('difference').textContent=d.difference;document.getElementById('baseLegend').style.display=external?'block':'none';document.getElementById('pointLegend').style.display=external?'none':'block';document.getElementById('currentLegend').innerHTML='<i class="sw" style="border-color:#1769df"></i>'+currentName;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode))}
+    const range=document.getElementById('range'),hint=document.getElementById('hint');function setMode(next){mode=next;const d=data[mode];range.min=d.min;range.max=d.max;range.value=mode==='internalEconomy'?28:mode==='internalDiseconomy'?74:0;value=+range.value;render()}range.addEventListener('input',()=>{value=+range.value;render()});document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));let dragging=false;function pointer(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}function updateFromPointer(e){const p=pointer(e),external=mode.includes('external'),economy=mode.includes('Economy');if(external){const cost=(H-m.b-p.y)*100/(H-m.t-m.b),shift=Math.max(-12,Math.min(12,cost-base(55)));value=economy?Math.max(0,-shift):Math.max(0,shift)}else{value=Math.max(+range.min,Math.min(+range.max,(p.x-m.l)*100/(W-m.l-m.r)))}range.value=value;render()}c.addEventListener('pointerdown',e=>{const p=pointer(e),q=mode.includes('external')?55:value,shift=mode.includes('external')?(mode.includes('Economy')?-value:value):0;if(Math.hypot(p.x-x(q),p.y-y(base(q)+shift))<30){dragging=true;c.setPointerCapture(e.pointerId);c.style.cursor='grabbing';updateFromPointer(e);e.preventDefault()}});c.addEventListener('pointermove',e=>{if(dragging){updateFromPointer(e);e.preventDefault()}});['pointerup','pointercancel'].forEach(k=>c.addEventListener(k,()=>{dragging=false;c.style.cursor='grab'}));const originalRender=render;render=function(){originalRender();hint.textContent=mode.includes('external')?(mode==='externalEconomy'?'Seret LAC1 ke bawah dari LAC0 untuk menunjukkan ekonomi bidangan luaran.':'Seret LAC2 ke atas dari LAC0 untuk menunjukkan tak ekonomi bidangan luaran.'):'Seret titik firma di sepanjang LAC0 untuk menukar kuantiti output.'};setMode(mode);
+  })();
+  </script>
+</body>
+</html>
