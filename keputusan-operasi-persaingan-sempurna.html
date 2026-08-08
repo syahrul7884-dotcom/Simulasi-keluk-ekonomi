@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Keputusan Operasi Firma Persaingan Sempurna</title>
+  <style>
+    :root{--navy:#12355b;--blue:#1769aa;--orange:#d97706;--green:#16803a;--red:#b42318;--ink:#172033;--grid:#d9e2ec;--paper:#fff;--soft:#f4f8fc}
+    *{box-sizing:border-box} body{margin:0;background:#f5f7fa;color:var(--ink);font:16px/1.55 Arial,sans-serif} main{max-width:1060px;margin:auto;padding:22px}
+    h1{color:var(--navy);font-size:1.6rem;margin:0 0 5px}.lead{margin:0 0 18px}.controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0 16px}.controls b{color:var(--navy)}
+    button{border:1px solid #9db3c8;border-radius:8px;padding:8px 11px;background:#fff;color:var(--navy);font-weight:700;cursor:pointer}button:hover,button:focus{background:#eaf4ff}button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+    .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.9fr);gap:20px;align-items:start}.panel{background:var(--paper);border:1px solid #d7e0e9;border-radius:12px;padding:15px;box-shadow:0 1px 3px #17203312}
+    #chart{width:100%;height:auto;display:block;background:#fff;touch-action:none}.hint{font-size:.88rem;color:#475569;margin:6px 0 0}.essay h2{font-size:1.12rem;color:var(--navy);margin:0 0 10px}.essay p{margin:0 0 12px}.answer{border-left:5px solid var(--blue);background:var(--soft);padding:12px;border-radius:4px}.answer strong{color:var(--navy)}
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.metric{background:#f8fafc;border:1px solid #dde7f0;border-radius:8px;padding:8px}.metric span{display:block;font-size:.78rem;color:#526274}.metric b{color:var(--navy)}.watermark{fill:#8392a5;opacity:.22;font-weight:700;font-size:18px;letter-spacing:1px}
+    @media(max-width:760px){main{padding:14px}.layout{grid-template-columns:1fr}.panel{padding:10px}h1{font-size:1.35rem}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Keputusan Operasi Firma Persaingan Sempurna: Untung Kurang Normal</h1>
+  <p class="lead">Pilih keadaan atau seret garis <b>AR = MR = DD = P</b>. Rajah menerangkan sama ada firma perlu teruskan operasi, boleh memilih, atau tutup operasi.</p>
+  <div class="controls" aria-label="Pilih keadaan firma"><b>Pilih keadaan:</b>
+    <button type="button" data-price="14">Teruskan operasi</button>
+    <button type="button" data-price="10">Boleh pilih terus atau tutup</button>
+    <button type="button" data-price="8">Tutup operasi</button>
+  </div>
+  <div class="layout">
+    <section class="panel">
+      <svg id="chart" viewBox="0 0 650 500" role="img" aria-label="Rajah firma persaingan sempurna dengan keluk MC, AC, AVC dan garis AR sama dengan MR sama dengan DD sama dengan P."></svg>
+      <p class="hint">Sentuh atau seret garis biru untuk mengubah harga. Keseimbangan E sentiasa pada MC = MR.</p>
+    </section>
+    <section class="panel essay" aria-live="polite">
+      <h2>Huraian jawapan esei</h2>
+      <div class="metrics">
+        <div class="metric"><span>Harga keseimbangan</span><b id="pVal"></b></div>
+        <div class="metric"><span>Kuantiti jika firma beroperasi</span><b id="qVal"></b></div>
+        <div class="metric"><span>Jumlah hasil (TR)</span><b id="trVal"></b></div>
+        <div class="metric"><span>Kos purata (AC)</span><b id="tcVal"></b></div>
+      </div>
+      <div class="answer" id="essayText"></div>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const svg=document.getElementById('chart'), W=650,H=500, m={l:70,r:38,t:38,b:62}, pw=W-m.l-m.r,ph=H-m.t-m.b;
+  const x=q=>m.l+q/12*pw, y=v=>H-m.b-v/42*ph;
+  const ac=q=>18+.72*(q-6)*(q-6), avc=q=>10+.50*(q-5)*(q-5), mc=q=>18+1.44*q*(q-6);
+  let price=30, dragging=false;
+  const fmt=n=>'RM '+n.toFixed(2), path=fn=>{let d='';for(let q=.5;q<=12;q+=.08)d+=(q===.5?'M':'L')+x(q).toFixed(1)+' '+y(fn(q)).toFixed(1)+' ';return d};
+  const rootNS='http://www.w3.org/2000/svg'; const el=(tag,attrs={},text='')=>{const e=document.createElementNS(rootNS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));e.textContent=text;return e};
+  function equilibrium(){const disc=36+4*(price-18)/1.44;return Math.max(.3,(6+Math.sqrt(Math.max(0,disc)))/2)}
+  function draw(){
+    const q=equilibrium(), aq=ac(q), avcq=avc(q), tr=price*q, tc=aq*q, gap=(price-aq)*q;
+    svg.replaceChildren();
+    svg.append(el('rect',{x:m.l,y:m.t,width:pw,height:ph,fill:'#fff',stroke:'#a7b6c5'}));
+    for(let v=0;v<=40;v+=10){svg.append(el('line',{x1:m.l,y1:y(v),x2:W-m.r,y2:y(v),stroke:'#d9e2ec'}));svg.append(el('text',{x:m.l-10,y:y(v)+5,'text-anchor':'end',fill:'#334155','font-size':'12'},v));}
+    for(let qq=0;qq<=12;qq+=2){svg.append(el('line',{x1:x(qq),y1:H-m.b,x2:x(qq),y2:H-m.b+5,stroke:'#334155'}));svg.append(el('text',{x:x(qq),y:H-m.b+22,'text-anchor':'middle',fill:'#334155','font-size':'12'},qq));}
+    svg.append(el('line',{x1:m.l,y1:m.t,x2:m.l,y2:H-m.b,stroke:'#172033','stroke-width':'2'}));svg.append(el('line',{x1:m.l,y1:H-m.b,x2:W-m.r,y2:H-m.b,stroke:'#172033','stroke-width':'2'}));
+    svg.append(el('text',{x:23,y:m.t+ph/2,transform:`rotate(-90 23 ${m.t+ph/2})`,fill:'#172033','font-weight':'700','text-anchor':'middle'},'Kos / Hasil (RM)'));
+    svg.append(el('text',{x:m.l+pw/2,y:H-15,fill:'#172033','font-weight':'700','text-anchor':'middle'},'Kuantiti keluaran (unit)'));
+    svg.append(el('rect',{x:m.l,y:y(Math.max(price,aq)),width:x(q)-m.l,height:Math.abs(y(price)-y(aq)),fill:gap>=0?'#16a34a22':'#dc262622'}));
+    svg.append(el('rect',{x:m.l,y:y(price),width:x(q)-m.l,height:y(0)-y(price),fill:'#2563eb14'}));
+    [['AVC',avc,'#d97706',11.4],['AC',ac,'#7c3aed',11.7],['MC',mc,'#b42318',11.8]].forEach(([name,fn,color,lq])=>{svg.append(el('path',{d:path(fn),fill:'none',stroke:color,'stroke-width':'3'}));svg.append(el('text',{x:x(lq)+5,y:y(fn(lq))-5,fill:color,'font-weight':'700'},name));});
+    svg.append(el('line',{x1:m.l,y1:y(price),x2:W-m.r,y2:y(price),stroke:'#1769aa','stroke-width':'4','data-drag-line':'true'}));
+    svg.append(el('text',{x:W-m.r-3,y:y(price)-8,'text-anchor':'end',fill:'#1769aa','font-weight':'700'},'AR = MR = DD = P'));
+    svg.append(el('circle',{cx:x(q),cy:y(price),r:6,fill:'#172033'}));svg.append(el('text',{x:x(q)+9,y:y(price)-9,fill:'#172033','font-weight':'700'},'E'));
+    svg.append(el('line',{x1:x(q),y1:y(price),x2:x(q),y2:H-m.b,stroke:'#475569','stroke-dasharray':'5 4'}));
+    svg.append(el('line',{x1:m.l,y1:y(aq),x2:x(q),y2:y(aq),stroke:'#475569','stroke-dasharray':'5 4'}));
+    svg.append(el('text',{x:x(q),y:H-m.b+42,'text-anchor':'middle',fill:'#172033','font-weight':'700'},'Q*'));
+    svg.append(el('text',{x:m.l-8,y:y(price)+4,'text-anchor':'end',fill:'#172033','font-weight':'700'},'P*'));
+    svg.append(el('text',{x:W/2,y:H/2+30,'text-anchor':'middle',class:'watermark'},'MSK Ekonomi Channel'));
+    const action=price>avcq+.45?'teruskan':price<avcq-.45?'tutup':'pilih';
+    document.getElementById('pVal').textContent=fmt(price);document.getElementById('qVal').textContent=action==='tutup'?'0 unit':q.toFixed(2)+' unit';document.getElementById('trVal').textContent=action==='tutup'?'RM 0.00':fmt(tr);document.getElementById('tcVal').textContent=fmt(aq);
+    const loss=Math.abs(gap), decision=action==='teruskan'?'<strong>Firma perlu teruskan operasi.</strong> Walaupun AR kurang daripada AC dan firma mengalami untung kurang normal, harga masih melebihi AVC. Jumlah hasil dapat menampung semua kos berubah dan sebahagian kos tetap.':action==='pilih'?'<strong>Firma boleh memilih sama ada teruskan atau tutup operasi.</strong> Harga adalah sama dengan AVC. Jumlah hasil hanya menampung kos berubah; firma menanggung kos tetap dalam kedua-dua pilihan.':'<strong>Firma perlu tutup operasi dalam jangka pendek.</strong> Harga adalah kurang daripada AVC. Jika firma terus beroperasi, jumlah hasil tidak dapat menampung kos berubah. Oleh itu, firma mengeluarkan sifar unit dan hanya menanggung kos tetap.';
+    document.getElementById('essayText').innerHTML=`<p><strong>Pada titik E, MC = MR</strong>. Dalam pasaran persaingan sempurna, <strong>AR = MR = DD = P</strong>. Harga ialah <strong>${fmt(price)}</strong>; AC pada keluaran tersebut ialah <strong>${fmt(aq)}</strong> dan AVC ialah <strong>${fmt(avcq)}</strong>.</p><p>Jika firma beroperasi, kuantiti ialah <strong>${q.toFixed(2)} unit</strong>, jumlah hasil ialah <strong>P × Q = ${fmt(price)} × ${q.toFixed(2)} = ${fmt(tr)}</strong> dan firma mengalami <strong>untung kurang normal / kerugian</strong> sebanyak <strong>${fmt(loss)}</strong>.</p><p>${decision}</p>`;
+    document.querySelectorAll('button[data-price]').forEach(b=>b.classList.toggle('active',+b.dataset.price===price));
+  }
+  function setFromEvent(e){const r=svg.getBoundingClientRect(), py=(e.touches?e.touches[0].clientY:e.clientY)-r.top;price=Math.max(6,Math.min(20,(H-m.b-py/r.height*H)*42/ph));draw()}
+  svg.addEventListener('pointerdown',e=>{dragging=true;svg.setPointerCapture(e.pointerId);setFromEvent(e)});svg.addEventListener('pointermove',e=>{if(dragging)setFromEvent(e)});svg.addEventListener('pointerup',()=>dragging=false);svg.addEventListener('pointercancel',()=>dragging=false);
+  document.querySelectorAll('button[data-price]').forEach(b=>b.addEventListener('click',()=>{price=+b.dataset.price;draw()}));draw();
+})();
+</script>
+</body>
+</html>
