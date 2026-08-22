@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ekonomi Quest: KUASAI STRUKTUR PASARAN</title>
+<!-- Font Arked Retro -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    background: #080214;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+    overflow-x: hidden;
+  }
+
+  /* KOTAK UTAMA ARKED */
+  #arcade-container {
+    position: relative;
+    width: 100%;
+    max-width: 850px;
+    background: #13082a;
+    border: 4px solid #00ffcc;
+    border-radius: 20px;
+    box-shadow: 0 0 25px #00ffcc, inset 0 0 15px rgba(0, 255, 204, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 15px;
+  }
+
+  /* KESAN SCANLINE RETRO */
+  #arcade-container::before {
+    content: " ";
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+    z-index: 10;
+    pointer-events: none;
+    border-radius: 16px;
+  }
+
+  .title {
+    font-size: clamp(1.1rem, 3.8vw, 2.1rem);
+    color: #ffe600;
+    text-shadow: 3px 3px #ff0055, 0 0 12px #ffe600;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .screen {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* 1. SKRIN UTAMA (SPLASH SCREEN) */
+  .instructions-box {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ff0055;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 12px 0;
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    line-height: 1.8;
+    color: #e2e8f0;
+    text-align: left;
+    max-width: 650px;
+  }
+
+  .instructions-box span.green { color: #00ffcc; font-weight: bold; }
+  .instructions-box span.yellow { color: #ffe600; font-weight: bold; }
+  .instructions-box span.red { color: #ff0055; font-weight: bold; }
+
+  .input-group {
+    margin: 15px 0;
+    width: 100%;
+    max-width: 350px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 14px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.85rem;
+    background: #000;
+    border: 2px solid #00ffcc;
+    color: #00ffcc;
+    border-radius: 8px;
+    text-align: center;
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  }
+
+  .btn-arcade {
+    background: #ff0055;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+    padding: 14px 28px;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #990033, 0 0 15px #ff0055;
+    transition: all 0.1s ease;
+    margin-top: 10px;
+  }
+
+  .btn-arcade:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #990033;
+  }
+
+  /* 2. HUD & GAMEPLAY */
+  .hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: clamp(0.6rem, 2vw, 0.85rem);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 2px solid #00ffcc;
+  }
+
+  /* KAD SOALAN / CIRI PASARAN */
+  .question-card {
+    background: linear-gradient(135deg, #1f0a44, #0a031a);
+    border: 3px solid #ffe600;
+    border-radius: 15px;
+    padding: 20px;
+    width: 100%;
+    max-width: 750px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255, 230, 0, 0.3);
+    margin-bottom: 20px;
+    position: relative;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .category-badge {
+    position: absolute;
+    top: -12px;
+    background: #ff0055;
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #fff;
+  }
+
+  .characteristic-text {
+    font-size: clamp(0.8rem, 2.4vw, 1.1rem);
+    line-height: 1.6;
+    color: #ffffff;
+    margin-top: 10px;
+  }
+
+  /* PILIHAN JAWAPAN (3 PILIHAN PASARAN) */
+  .market-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 750px;
+  }
+
+  .market-btn {
+    background: #180938;
+    border: 3px solid #00ffcc;
+    border-radius: 12px;
+    padding: 18px 10px;
+    color: #00ffcc;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+    line-height: 1.5;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #0088cc;
+    transition: all 0.1s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+  }
+
+  .market-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #0088cc;
+    background: #00ffcc;
+    color: #000;
+  }
+
+  .market-btn .icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+
+  /* MAKLUM BALAS & PENJELASAN */
+  #feedback-banner {
+    min-height: 45px;
+    margin-top: 15px;
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    text-align: center;
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 750px;
+  }
+
+  .fb-correct { background: rgba(0, 255, 204, 0.2); color: #00ffcc; border: 1px solid #00ffcc; }
+  .fb-wrong { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff0055; }
+
+  /* 3. SKRIN GAME OVER & JADUAL RINGKASAN */
+  #screen-gameover {
+    text-align: center;
+    width: 100%;
+  }
+
+  .score-card {
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid #ffe600;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 15px 0;
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    line-height: 1.8;
+    width: 100%;
+  }
+
+  /* JADUAL REVISI EKONOMI */
+  .summary-table-wrapper {
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 15px;
+    border: 1px solid #00ffcc;
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.55rem;
+    text-align: left;
+  }
+
+  th, td {
+    padding: 8px;
+    border: 1px solid #331155;
+    line-height: 1.4;
+  }
+
+  th {
+    background: #ff0055;
+    color: #fff;
+    position: sticky;
+    top: 0;
+  }
+
+  tr:nth-child(even) { background: rgba(255, 255, 255, 0.05); }
+</style>
+</head>
+<body>
+
+<div id="arcade-container">
+  <div class="title">STRUKTUR PASARAN EKONOMI</div>
+
+  <!-- 1. SKRIN UTAMA (SPLASH SCREEN) -->
+  <div id="screen-start" class="screen">
+    <div class="instructions-box">
+      <p style="color:#ffe600; text-align:center; margin-bottom:10px; font-size: 0.95rem;">📜 CARA BERMAIN:</p>
+      <p>1. Baca kenyataan <span class="yellow">CIRI PASARAN</span> yang muncul.</p>
+      <p>2. Tekan/Klik <span class="green">PASARAN YANG BETUL</span>:</p>
+      <p style="margin-left: 15px;">• <span class="green">Persaingan Sempurna</span></p>
+      <p style="margin-left: 15px;">• <span class="green">Monopoli</span></p>
+      <p style="margin-left: 15px;">• <span class="green">Persaingan Bermonopoli</span></p>
+      <p>3. Jawapan Betul: <span class="green">+10 Mata</span> | Salah: <span class="red">-5 Mata</span>.</p>
+      <p>4. Selesaikan dalam masa <span class="yellow">60 SAAT</span>!</p>
+    </div>
+
+    <div class="input-group">
+      <input type="text" id="player-name" placeholder="NAMA PELAJAR" maxlength="12" autocomplete="off">
+    </div>
+
+    <button class="btn-arcade" onclick="startGame()">MULA PLAY</button>
+  </div>
+
+  <!-- 2. SKRIN GAMEPLAY -->
+  <div id="screen-game" class="screen hidden">
+    <div class="hud">
+      <div>👤 <span id="hud-name" style="color:#fff;">PELAJAR</span></div>
+      <div style="color:#ffe600;">⏱️ <span id="hud-time">60</span>S</div>
+      <div style="color:#00ffcc;">🏆 <span id="hud-score">0</span></div>
+    </div>
+
+    <!-- SOALAN CARD -->
+    <div class="question-card">
+      <div class="category-badge" id="category-badge">CIRI PASARAN</div>
+      <div class="characteristic-text" id="question-text">Pilih pasaran yang betul berdasarkan ciri di sini...</div>
+    </div>
+
+    <!-- BUTANG PILIHAN PASARAN (100% MOUSE & TOUCH FRIENDLY) -->
+    <div class="market-options">
+      <button class="market-btn" onclick="checkAnswer('PPS')">
+        <span class="icon">🌾</span>
+        Persaingan Sempurna
+      </button>
+
+      <button class="market-btn" onclick="checkAnswer('MONOPOLI')">
+        <span class="icon">⚡</span>
+        Pasaran Monopoli
+      </button>
+
+      <button class="market-btn" onclick="checkAnswer('PPB')">
+        <span class="icon">🛍️</span>
+        Persaingan Bermonopoli
+      </button>
+    </div>
+
+    <!-- BANNER MAKLUM BALAS -->
+    <div id="feedback-banner"></div>
+  </div>
+
+  <!-- 3. SKRIN GAME OVER & JADUAL REVISI -->
+  <div id="screen-gameover" class="screen hidden">
+    <div class="title" style="color:#ff0055;">GAME TAMAT!</div>
+    
+    <div class="score-card">
+      <p>Pemain: <span id="final-name" style="color:#00ffcc;">-</span></p>
+      <p>Markah Akhir: <span id="final-score" style="color:#ffe600; font-size:1.3rem;">0</span></p>
+      <p id="final-rating" style="color:#ff0055; margin-top:6px;">-</p>
+
+      <!-- JADUAL REVISI RINGKASAN CIRI PASARAN -->
+      <div class="summary-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Ciri Pasaran</th>
+              <th>Persaingan Sempurna</th>
+              <th>Monopoli</th>
+              <th>Persaingan Bermonopoli</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Bilangan Firma</b></td>
+              <td>Sangat Ramai</td>
+              <td>Tunggal (Satu)</td>
+              <td>Relatif Ramai</td>
+            </tr>
+            <tr>
+              <td><b>Jenis Barang</b></td>
+              <td>Homogen (Serupa)</td>
+              <td>Unik / Tiada Pengganti</td>
+              <td>Pengganti hampir (Berbeza Corak)</td>
+            </tr>
+            <tr>
+              <td><b>Kebebasan Keluar/Masuk</b></td>
+              <td>Bebas Sepenuhnya</td>
+              <td>Sekatan Mutlak</td>
+              <td>Relatif Bebas / Mudah</td>
+            </tr>
+            <tr>
+              <td><b>Kuasa Harga</b></td>
+              <td>Tiada Kuasa (Penerima Harga)</td>
+              <td>Kuasa Penuh (Penentu Harga)</td>
+              <td>Kuasa Sedikit / Sederhana</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn-arcade" onclick="restartGame()">CUBA LAGI</button>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 1. BANK DATA SOALAN EKONOMI (CIRI PASARAN)
+// ==========================================
+const BANK_SOALAN = [
+  // Bilangan Firma
+  { text: "Bilangan firma sangat ramai di dalam pasaran.", type: "PPS", cat: "BILANGAN FIRMA", info: "PPS mempunyai jumlah firma yang terlalu ramai sehingga tiada firma boleh mempengaruhi pasaran." },
+  { text: "Firma tunggal (hanya ada satu-satunya pengeluar dalam pasaran).", type: "MONOPOLI", cat: "BILANGAN FIRMA", info: "Monopoli merupakan pengeluar tunggal bagi sesebuah barang/perkhidmatan." },
+  { text: "Bilangan firma relatif ramai tetapi kurang daripada persaingan sempurna.", type: "PPB", cat: "BILANGAN FIRMA", info: "PPB mengandungi banyak firma kecil yang bersaing sesama sendiri." },
+
+  // Jenis Barang
+  { text: "Barang bersifat HOMOGEN (serupa dan merupakan pengganti sempurna).", type: "PPS", cat: "JENIS BARANG", info: "Barang PPS adalah identikal, pengguna tidak dapat membezakan pengeluarnya." },
+  { text: "Barang bersifat UNIK dan tiada barang pengganti hampir.", type: "MONOPOLI", cat: "JENIS BARANG", info: "Barang monopoli tiada alternatif lain di pasaran (Contoh: TNB / Syarikat Air)." },
+  { text: "Barang bersifat HETEROGEN/PENGGANTI HAMPIR (berbeza corak tetapi pengganti hampir).", type: "PPB", cat: "JENIS BARANG", info: "Barang PPB dibezakan melalui jenama, pembungkusan, atau rasa (Contoh: Ubat gigi/Sabun)." },
+
+  // Kebebasan Keluar Masuk Pasaran
+  { text: "BEBAS SEPENUHNYA keluar atau masuk pasaran tanpa sebarang halangan.", type: "PPS", cat: "KEBEBASAN MASUK/KELUAR", info: "Tiada sekatan undang-undang atau modal untuk memasuki pasaran PPS." },
+  { text: "Wujud SEKATAN MUTLAK (undang-undang/paten/modal besar) untuk masuk pasaran.", type: "MONOPOLI", cat: "KEBEBASAN MASUK/KELUAR", info: "Firma baharu mustahil untuk masuk ke pasaran monopoli kerana wujud halangan semula jadi/undang-undang." },
+  { text: "RELATIF BEBAS / Mudah untuk keluar masuk pasaran.", type: "PPB", cat: "KEBEBASAN MASUK/KELUAR", info: "Kemasukan mudah tetapi memerlukan modal untuk promosi dan iklan." },
+
+  // Kuasa Harga
+  { text: "Firma TIADA KUASA menentukan harga (merupakan Penerima Harga).", type: "PPS", cat: "KUASA HARGA", info: "Harga ditentukan oleh daya permintaan dan penawaran pasaran." },
+  { text: "Firma mempunyai KUASA PENUH menentukan harga (Penentu Harga).", type: "MONOPOLI", cat: "KUASA HARGA", info: "Firma monopoli boleh mengawal kuantiti atau harga untuk memaksimumkan untung." },
+  { text: "Firma mempunyai KUASA SEDIKIT / Sederhana menentukan harga.", type: "PPB", cat: "KUASA HARGA", info: "Kuasa wujud kerana pembezaan barangan & kesetiaan jenama pengguna." },
+
+  // Contoh & Persaingan Bukan Harga
+  { text: "Contoh: Hasil pertanian seperti beras, sayur, dan gandum.", type: "PPS", cat: "CONOH PASARAN", info: "Hasil pertanian adalah contoh paling dekat dengan pasaran persaingan sempurna." },
+  { text: "Contoh: Bekalan Elektrik (TNB) dan Kereta Api (KTM).", type: "MONOPOLI", cat: "CONTOH PASARAN", info: "Perkhidmatan utiliti utama biasanya merupakan monopoli semula jadi." },
+  { text: "Contoh: Restoran makanan jadian, kedai gunting rambut, dan sabun mandi.", type: "PPB", cat: "CONTOH PASARAN", info: "Perniagaan runcit dan perkhidmatan harian mengamalkan persaingan bermonopoli." }
+];
+
+// ==========================================
+// 2. AUDIO SYNTHESIZER (WEB AUDIO API)
+// ==========================================
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === 'correct') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } else if (type === 'wrong') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.linearRampToValueAtTime(90, now + 0.2);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (type === 'start') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.setValueAtTime(500, now + 0.1);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+}
+
+// ==========================================
+// 3. PEMPULEH UBAH UTAMA
+// ==========================================
+let playerName = "PELAJAR";
+let score = 0;
+let timeLeft = 60;
+let timerInterval = null;
+let currentQuestionIndex = 0;
+let shuffledQuestions = [];
+
+// ==========================================
+// 4. LOGIK PERMAINAN
+// ==========================================
+function startGame() {
+  initAudio();
+  const input = document.getElementById('player-name').value.trim();
+  playerName = input ? input.toUpperCase() : "PELAJAR";
+
+  document.getElementById('hud-name').innerText = playerName;
+  document.getElementById('screen-start').classList.add('hidden');
+  document.getElementById('screen-gameover').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+
+  score = 0;
+  timeLeft = 60;
+  document.getElementById('hud-score').innerText = score;
+  document.getElementById('hud-time').innerText = timeLeft;
+
+  // Rawak Soalan
+  shuffledQuestions = [...BANK_SOALAN].sort(() => Math.random() - 0.5);
+  currentQuestionIndex = 0;
+
+  playSound('start');
+  showQuestion();
+
+  // Pemasa Countdown
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById('hud-time').innerText = timeLeft;
+
+    if (timeLeft <= 0) {
+      endGame();
+    }
+  }, 1000);
+}
+
+function showQuestion() {
+  if (currentQuestionIndex >= shuffledQuestions.length) {
+    // Sekiranya soalan habis sebelum 60 saat, rawak semula
+    shuffledQuestions = [...BANK_SOALAN].sort(() => Math.random() - 0.5);
+    currentQuestionIndex = 0;
+  }
+
+  const q = shuffledQuestions[currentQuestionIndex];
+  document.getElementById('category-badge').innerText = q.cat;
+  document.getElementById('question-text').innerText = q.text;
+
+  const fb = document.getElementById('feedback-banner');
+  fb.innerText = "";
+  fb.className = "";
+}
+
+function checkAnswer(selectedType) {
+  const q = shuffledQuestions[currentQuestionIndex];
+  const fb = document.getElementById('feedback-banner');
+
+  if (selectedType === q.type) {
+    score += 10;
+    playSound('correct');
+    fb.innerHTML = `✅ BETUL! (+10 Mata)<br><span style="font-size:0.65rem; font-weight:normal;">${q.info}</span>`;
+    fb.className = "fb-correct";
+  } else {
+    score = Math.max(0, score - 5);
+    playSound('wrong');
+    fb.innerHTML = `❌ SALAH! (-5 Mata)<br><span style="font-size:0.65rem; font-weight:normal;">${q.info}</span>`;
+    fb.className = "fb-wrong";
+  }
+
+  document.getElementById('hud-score').innerText = score;
+
+  // Lanjut ke soalan seterusnya selepas delay ringkas
+  currentQuestionIndex++;
+  setTimeout(() => {
+    showQuestion();
+  }, 1600);
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  playSound('start');
+
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-gameover').classList.remove('hidden');
+
+  document.getElementById('final-name').innerText = playerName;
+  document.getElementById('final-score').innerText = score;
+
+  let rating = "PERLU KULANGI REVISI!";
+  if (score >= 120) rating = "🌟 PAKAR TYCOON EKONOMI!";
+  else if (score >= 70) rating = "👍 HEBAT & KUASAI PASARAN!";
+  document.getElementById('final-rating').innerText = rating;
+}
+
+function restartGame() {
+  startGame();
+}
+</script>
+</body>
+</html>
