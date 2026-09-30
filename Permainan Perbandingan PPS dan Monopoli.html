@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Perbandingan PPS vs Monopoli</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f172a;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+    #gameContainer {
+      position: relative;
+      width: 900px;
+      height: 650px;
+      border: 4px solid #38bdf8;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      background: #1e293b;
+    }
+    canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+    .screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 10;
+      padding: 30px;
+      text-align: center;
+    }
+    input[type="text"] {
+      padding: 14px 22px;
+      font-size: 20px;
+      border-radius: 8px;
+      border: 2px solid #38bdf8;
+      margin-bottom: 25px;
+      text-align: center;
+      outline: none;
+      width: 300px;
+      background: #0f172a;
+      color: #fff;
+    }
+    button {
+      padding: 14px 35px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      background: #0284c7;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+    }
+    button:hover { background: #0369a1; transform: translateY(-2px); }
+    .hidden { display: none !important; }
+    
+    .rules-list {
+      text-align: left;
+      background: rgba(30, 41, 59, 0.8);
+      padding: 15px 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+      border-left: 4px solid #f59e0b;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #38bdf8; margin-bottom: 8px;">⚔️ Cabaran Perbandingan Pasaran</h1>
+    <h3 style="color: #f59e0b; font-weight: 500; margin-bottom: 20px;">Persaingan Sempurna (PPS) vs Monopoli</h3>
+    
+    <div class="rules-list">
+      <p><b>Cara Bermain:</b></p>
+      <p>• Pilih zon kategori yang betul bagi setiap kenyataan yang dipaparkan.</p>
+      <p>• Kategori: <b>PPS</b> | <b>KEDUA-DUANYA</b> | <b>MONOPOLI</b></p>
+      <p>• Masa: <b>90 Saat</b> | Jawapan Tepat: <b>+10 Markah</b> | Salah: <b>-5 Markah</b></p>
+    </div>
+
+    <input type="text" id="playerName" placeholder="Nama Pensyarah / Pelajar" maxlength="15">
+    <button onclick="startGame()">Mula Permainan</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 style="color: #38bdf8;">Tamat Permainan!</h1>
+    <h2 id="finalName" style="color: #f59e0b; margin: 10px 0;"></h2>
+    <h3 style="font-size: 32px; margin-bottom: 10px;">Markah Akhir: <span id="finalScore" style="color: #4ade80;">0</span></h3>
+    <p id="accuracyText" style="color: #cbd5e1; margin-bottom: 25px; font-size: 18px;"></p>
+    <button onclick="resetGame()">Main Semula</button>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="650"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Bank Soalan Perbandingan PPS vs Monopoli (Dikemas kini)
+  const questionDatabase = [
+    { text: "Keseimbangan firma tercapai apabila MR = MC", target: "BOTH", explain: "Syarat keseimbangan semua firma ialah MR = MC." },
+    { text: "Mencapai Kecekapan Peruntukan (P = MC)", target: "PPS", explain: "PPS menetapkan harga sama dengan kos sut (P = MC)." },
+    { text: "Boleh menjalankan Diskriminasi Harga untuk memaksimumkan keuntungan", target: "MONO", explain: "Hanya Monopoli yang berkuasa menetapkan harga berbeza bagi barangan yang sama." },
+    { text: "Harga lebih tinggi & kuantiti lebih sedikit (P_m > P_p, Q_m < Q_p)", target: "MONO", explain: "Monopoli menyekat keluaran untuk menaikkan harga berbanding PPS." },
+    { text: "Hanya mendapat Untung Normal dalam jangka panjang", target: "PPS", explain: "Kebebasan keluar masuk menyebabkan PPS dapat untung normal sahaja dalam jangka panjang." },
+    { text: "Boleh kekal mendapat Untung Lebih Normal dalam jangka panjang", target: "MONO", explain: "Halangan kemasukan membolehkan Monopoli kekal menikmati untung lebih normal." },
+    { text: "Keluk permintaan anjal sempurna (AR = MR = D = P)", target: "PPS", explain: "Firma PPS adalah penerima harga (price taker)." },
+    { text: "Keluk permintaan mencerun ke bawah dari kiri ke kanan (AR > MR)", target: "MONO", explain: "Monopoli adalah penentu harga (price maker) di pasaran." },
+    { text: "Mencapai Kecekapan Pengeluaran (Min AC) dalam jangka panjang", target: "PPS", explain: "Firma PPS beroperasi pada kos purata minimum dalam jangka panjang." },
+    { text: "Lebihan Pengguna adalah Maksimum dalam pasaran", target: "PPS", explain: "Harga yang rendah & kuantiti pengeluaran yang tinggi memaksimumkan lebihan pengguna." },
+    { text: "Firma bertindak sebagai Penentu Harga (Price Maker)", target: "MONO", explain: "Monopoli mengawal penawaran untuk menentukan harga." },
+    { text: "Firma bertindak sebagai Penerima Harga (Price Taker)", target: "PPS", explain: "Firma PPS tidak mempunyai kuasa menentukan harga pasaran." },
+    { text: "Tiada halangan untuk firma baharu keluar atau masuk pasaran", target: "PPS", explain: "PPS mempunyai kebebasan keluar masuk pasaran secara mutlak." },
+    { text: "Wujud halangan kemasukan yang tinggi (Lesen, Paten, Modal)", target: "MONO", explain: "Monopoli dilindungi oleh halangan undang-undang & ekonomi." },
+    { text: "Mengeluarkan barangan yang homogen (identikal 100%)", target: "PPS", explain: "Barangan PPS adalah pengganti sempurna antara satu sama lain." },
+    { text: "Mengeluarkan barangan unik yang tiada pengganti dekat", target: "MONO", explain: "Produk monopoli tidak mempunyai alternatif terdekat di pasaran." },
+    { text: "Firma adalah industri itu sendiri", target: "MONO", explain: "Kerana hanya ada SATU firma tunggal yang menguasai pasaran." },
+    { text: "Terdiri daripada ramai pengeluar kecil dalam pasaran", target: "PPS", explain: "PPS mempunyai bilangan penjual dan pembeli yang sangat ramai." },
+    { text: "Membawa kepada ketidakcekapan peruntukan sumber (P > MC)", target: "MONO", explain: "Harga melebihi kos sut mewujudkan ketidakcekapan peruntukan." },
+    { text: "Keluk penawaran firma jangka pendek adalah bahagian keluk MC di atas Min AVC", target: "PPS", explain: "Hanya PPS mempunyai keluk penawaran terbitan daripada keluk MC." }
+  ];
+
+  let studentName = "";
+  let score = 0;
+  let timer = 90;
+  let timerInterval;
+  let isPlaying = false;
+
+  let totalAnswered = 0;
+  let correctAnswers = 0;
+
+  let currentQuestion = null;
+  let remainingQuestions = [];
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+  let feedbackColor = "";
+  let feedbackExplanation = "";
+
+  // Zon Pilihan / Target Bins
+  const targetZones = [
+    { id: 'PPS', label: 'PERSAINGAN SEMPURNA', color: '#0284c7', hoverColor: '#0369a1', x: 30, y: 460, w: 260, h: 120 },
+    { id: 'BOTH', label: 'KEDUA-DUA PASARAN', color: '#d97706', hoverColor: '#b45309', x: 320, y: 460, w: 260, h: 120 },
+    { id: 'MONO', label: 'MONOPOLI', color: '#dc2626', hoverColor: '#b91c1c', x: 610, y: 460, w: 260, h: 120 }
+  ];
+
+  let hoveredZone = null;
+
+  function startGame() {
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      alert("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 90;
+    totalAnswered = 0;
+    correctAnswers = 0;
+    isPlaying = true;
+
+    remainingQuestions = [...questionDatabase].sort(() => 0.5 - Math.random());
+    nextQuestion();
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame();
+    }, 1000);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function nextQuestion() {
+    if (remainingQuestions.length === 0) {
+      remainingQuestions = [...questionDatabase].sort(() => 0.5 - Math.random());
+    }
+    currentQuestion = remainingQuestions.pop();
+  }
+
+  function handleInput(clientX, clientY) {
+    if (!isPlaying) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touchX = (clientX - rect.left) * (canvas.width / rect.width);
+    const touchY = (clientY - rect.top) * (canvas.height / rect.height);
+
+    for (let zone of targetZones) {
+      if (touchX >= zone.x && touchX <= zone.x + zone.w &&
+          touchY >= zone.y && touchY <= zone.y + zone.h) {
+        
+        totalAnswered++;
+        if (zone.id === currentQuestion.target) {
+          score += 10;
+          correctAnswers++;
+          showFeedback("TEPAT! +10", "#4ade80", currentQuestion.explain);
+        } else {
+          score = Math.max(0, score - 5);
+          showFeedback("SALAH! -5", "#f87171", `Jawapan Betul: ${getLabelById(currentQuestion.target)} - ${currentQuestion.explain}`);
+        }
+
+        nextQuestion();
+        break;
+      }
+    }
+  }
+
+  function getLabelById(id) {
+    if (id === 'PPS') return 'PPS';
+    if (id === 'MONO') return 'Monopoli';
+    return 'Kedua-duanya';
+  }
+
+  function handleMouseMove(clientX, clientY) {
+    if (!isPlaying) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (clientY - rect.top) * (canvas.height / rect.height);
+
+    hoveredZone = null;
+    for (let zone of targetZones) {
+      if (mouseX >= zone.x && mouseX <= zone.x + zone.w &&
+          mouseY >= zone.y && mouseY <= zone.y + zone.h) {
+        hoveredZone = zone.id;
+        break;
+      }
+    }
+  }
+
+  canvas.addEventListener('mousedown', (e) => handleInput(e.clientX, e.clientY));
+  canvas.addEventListener('mousemove', (e) => handleMouseMove(e.clientX, e.clientY));
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleInput(touch.clientX, touch.clientY);
+  });
+
+  function showFeedback(msg, color, explanation) {
+    feedbackMessage = msg;
+    feedbackColor = color;
+    feedbackExplanation = explanation;
+    feedbackTimer = 90;
+  }
+
+  function update() {
+    if (feedbackTimer > 0) feedbackTimer--;
+  }
+
+  function draw() {
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(40, 70, canvas.width - 80, 220);
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(40, 70, canvas.width - 80, 220);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("NYATAKAN STRUKTUR PASARAN BAGI PERNYAATAN BERIKUT:", canvas.width / 2, 105);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px Arial";
+    wrapText(ctx, `"${currentQuestion.text}"`, canvas.width / 2, 160, canvas.width - 120, 28);
+
+    targetZones.forEach(zone => {
+      const isHovered = hoveredZone === zone.id;
+      ctx.fillStyle = isHovered ? zone.hoverColor : zone.color;
+      ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = isHovered ? 3 : 1;
+      ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 15px Arial";
+      ctx.textAlign = "center";
+      
+      if (zone.id === 'BOTH') {
+        ctx.fillText("🤝 KEDUA-DUA", zone.x + zone.w / 2, zone.y + 50);
+        ctx.fillText("PASARAN", zone.x + zone.w / 2, zone.y + 75);
+      } else if (zone.id === 'PPS') {
+        ctx.fillText("🏢 PERSAINGAN", zone.x + zone.w / 2, zone.y + 50);
+        ctx.fillText("SEMPURNA (PPS)", zone.x + zone.w / 2, zone.y + 75);
+      } else {
+        ctx.fillText("👑 PASARAN", zone.x + zone.w / 2, zone.y + 50);
+        ctx.fillText("MONOPOLI", zone.x + zone.w / 2, zone.y + 75);
+      }
+    });
+
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+      ctx.fillRect(30, 305, canvas.width - 60, 135);
+      ctx.strokeStyle = feedbackColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(30, 305, canvas.width - 60, 135);
+
+      ctx.fillStyle = feedbackColor;
+      ctx.font = "bold 22px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage, canvas.width / 2, 338);
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "14px Arial";
+      wrapText(ctx, feedbackExplanation, canvas.width / 2, 375, canvas.width - 100, 20);
+    } else {
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "italic 14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Klik / Tap pada salah satu zon di bawah untuk memilih jawapan anda", canvas.width / 2, 370);
+    }
+
+    ctx.fillStyle = "#0284c7";
+    ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`👤 ${studentName}`, 25, canvas.height - 18);
+
+    ctx.textAlign = "center";
+    ctx.fillText(`⏳ Masa: ${timer}s`, canvas.width / 2, canvas.height - 18);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 25, canvas.height - 18);
+  }
+
+  function wrapText(context, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = context.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        context.fillText(line, x, currentY);
+        line = words[n] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    context.fillText(line, x, currentY);
+  }
+
+  function gameLoop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('finalName').innerText = `Tahniah, ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+
+    const accuracy = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+    document.getElementById('accuracyText').innerText = `Ketepatan Jawapan: ${accuracy}% (${correctAnswers}/${totalAnswered} Soalan Tepat)`;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>

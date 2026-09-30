@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Keluk Struktur Pasaran Ekonomi</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f8fafc;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+    #gameContainer {
+      position: relative;
+      width: 900px;
+      height: 650px;
+      border: 4px solid #0284c7;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+      background: #ffffff;
+    }
+    canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+    .screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.96);
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    input[type="text"] {
+      padding: 14px 22px;
+      font-size: 20px;
+      border-radius: 8px;
+      border: 2px solid #0284c7;
+      margin-bottom: 25px;
+      text-align: center;
+      outline: none;
+      width: 280px;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    button {
+      padding: 14px 35px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      background: #0284c7;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      transition: background 0.2s;
+    }
+    button:hover { background: #0369a1; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #0284c7; margin-bottom: 10px;">📊 Cabaran Keluk Struktur Pasaran</h1>
+    <h3 style="color: #475569; font-weight: 500; margin-bottom: 25px;">PPS • Monopoli • Pasaran Bermonopoli</h3>
+    <p style="margin-bottom: 15px; color: #334155;">Masukkan nama anda untuk memulakan cabaran (Masa: 120 saat):</p>
+    <input type="text" id="playerName" placeholder="Nama Pensyarah / Pelajar" maxlength="15">
+    <button onclick="startGame()">Mula Permainan</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 style="color: #0284c7;">Tamat Permainan!</h1>
+    <h2 id="finalName" style="color: #d97706;"></h2>
+    <h3 style="font-size: 28px; color: #0f172a;">Markah Akhir: <span id="finalScore" style="color: #16a34a;">0</span></h3>
+    <button onclick="resetGame()" style="margin-top: 15px;">Main Semula</button>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="650"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Bank Soalan dan Keluk bagi 3 Pasaran
+  const graphDatabase = [
+    // Pasaran Persaingan Sempurna (PPS)
+    { market: 'PASARAN PERSAINGAN SEMPURNA', type: 'UNTUNG LEBIH NORMAL', code: 'PPS_SUPER' },
+    { market: 'PASARAN PERSAINGAN SEMPURNA', type: 'UNTUNG NORMAL', code: 'PPS_NORMAL' },
+    { market: 'PASARAN PERSAINGAN SEMPURNA', type: 'RUGI (TERUSKAN OPERASI)', code: 'PPS_TERUS' },
+    { market: 'PASARAN PERSAINGAN SEMPURNA', type: 'TITIK PENUTUPAN FIRMA', code: 'PPS_TITIK' },
+    { market: 'PASARAN PERSAINGAN SEMPURNA', type: 'RUGI (TUTUP OPERASI)', code: 'PPS_TUTUP' },
+
+    // Pasaran Monopoli
+    { market: 'PASARAN MONOPOLI', type: 'UNTUNG LEBIH NORMAL', code: 'MONO_SUPER' },
+    { market: 'PASARAN MONOPOLI', type: 'UNTUNG NORMAL', code: 'MONO_NORMAL' },
+    { market: 'PASARAN MONOPOLI', type: 'UNTUNG KURANG NORMAL', code: 'MONO_RUGI' },
+
+    // Pasaran Bermonopoli (PBM)
+    { market: 'PASARAN BERMONOPOLI', type: 'UNTUNG LEBIH NORMAL', code: 'PBM_SUPER' },
+    { market: 'PASARAN BERMONOPOLI', type: 'UNTUNG NORMAL', code: 'PBM_NORMAL' },
+    { market: 'PASARAN BERMONOPOLI', type: 'UNTUNG KURANG NORMAL', code: 'PBM_RUGI' }
+  ];
+
+  let studentName = "";
+  let score = 0;
+  let timer = 120;
+  let timerInterval;
+  let isPlaying = false;
+
+  let currentTarget = null;
+  let activeCards = [];
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+
+  function startGame() {
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      alert("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 120;
+    isPlaying = true;
+
+    setNextTarget();
+    spawnCards();
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame();
+    }, 1000);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function setNextTarget() {
+    const randomIndex = Math.floor(Math.random() * graphDatabase.length);
+    currentTarget = graphDatabase[randomIndex];
+  }
+
+  function spawnCards() {
+    activeCards = [];
+    let pool = [...graphDatabase];
+    let correctCardData = currentTarget;
+    
+    pool = pool.filter(g => g.code !== currentTarget.code);
+    pool.sort(() => 0.5 - Math.random());
+    
+    let selectedData = [correctCardData, pool[0], pool[1]];
+    selectedData.sort(() => 0.5 - Math.random());
+
+    selectedData.forEach((data, index) => {
+      activeCards.push({
+        ...data,
+        x: -220 - (index * 260),
+        y: 160 + (index % 2) * 190,
+        width: 220,
+        height: 170,
+        speed: 2.0 + Math.random() * 1.2
+      });
+    });
+  }
+
+  function update() {
+    activeCards.forEach(card => {
+      card.x += card.speed;
+
+      if (card.x > canvas.width + 50) {
+        card.x = -240;
+      }
+    });
+
+    if (feedbackTimer > 0) feedbackTimer--;
+  }
+
+  function handleInput(clientX, clientY) {
+    if (!isPlaying) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touchX = (clientX - rect.left) * (canvas.width / rect.width);
+    const touchY = (clientY - rect.top) * (canvas.height / rect.height);
+
+    for (let i = 0; i < activeCards.length; i++) {
+      let card = activeCards[i];
+      if (touchX >= card.x && touchX <= card.x + card.width &&
+          touchY >= card.y && touchY <= card.y + card.height) {
+        
+        if (card.code === currentTarget.code) {
+          score += 10;
+          showFeedback("TEPAT! +10", "#4ade80");
+          setNextTarget();
+          spawnCards();
+        } else {
+          score = Math.max(0, score - 5);
+          showFeedback("SALAH! -5", "#f87171");
+        }
+        break;
+      }
+    }
+  }
+
+  canvas.addEventListener('mousedown', (e) => handleInput(e.clientX, e.clientY));
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleInput(touch.clientX, touch.clientY);
+  });
+
+  function showFeedback(msg, color) {
+    feedbackMessage = { text: msg, color: color };
+    feedbackTimer = 60;
+  }
+
+  function draw() {
+    // 1. Latar Belakang Putih
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Header Pernyataan Soalan Sasaran
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(15, 15, canvas.width - 30, 110);
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(15, 15, canvas.width - 30, 110);
+
+    ctx.fillStyle = "#d97706";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`CARI KELUK BAGI STRUKTUR PASARAN BERIKUT:`, canvas.width / 2, 42);
+
+    ctx.fillStyle = "#0284c7";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText(`${currentTarget.market}`, canvas.width / 2, 72);
+
+    ctx.fillStyle = "#16a34a";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(`KEADAAN: ${currentTarget.type}`, canvas.width / 2, 102);
+
+    // 3. Lukis Kad Keluk Bergerak
+    activeCards.forEach(card => {
+      drawGraphCard(card);
+    });
+
+    // 4. HUD (Maklumat Pelajar, Masa & Markah)
+    ctx.fillStyle = "#0284c7";
+    ctx.fillRect(0, canvas.height - 45, canvas.width, 45);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Pensyarah / Pelajar: ${studentName}`, 25, canvas.height - 16);
+
+    ctx.textAlign = "center";
+    ctx.fillText(`⏳ Masa: ${timer}s`, canvas.width / 2, canvas.height - 16);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 25, canvas.height - 16);
+
+    // Pop-up Maklum Balas Jawapan
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+      ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 - 30, 240, 60);
+      ctx.fillStyle = feedbackMessage.color;
+      ctx.font = "bold 22px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage.text, canvas.width / 2, canvas.height / 2 + 8);
+    }
+  }
+
+  // Fungsi Melukis Keluk Ekonomi pada Kad Canvas
+  function drawGraphCard(card) {
+    ctx.save();
+    ctx.translate(card.x, card.y);
+
+    // Kad Utama (Latar Kad)
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(0, 0, card.width, card.height);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, card.width, card.height);
+
+    // Paksi Graf (P vs Q)
+    ctx.strokeStyle = "#475569";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(25, 20); ctx.lineTo(25, 145); // Paksi Y (P)
+    ctx.lineTo(205, 145); // Paksi X (Q)
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 11px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("P", 12, 25);
+    ctx.fillText("Q", 198, 158);
+
+    const code = card.code;
+
+    // --- 1. PASARAN PERSAINGAN SEMPURNA (PPS) ---
+    if (code.startsWith('PPS')) {
+      // Garis P = AR = MR (Horizontal)
+      let pY = 70;
+      if (code === 'PPS_SUPER') pY = 55;
+      if (code === 'PPS_NORMAL') pY = 89;  // Bertangen tepat pada titik minimum AC
+      if (code === 'PPS_TERUS')  pY = 102;
+      if (code === 'PPS_TITIK')  pY = 112; // Bertangen pada minimum AVC
+      if (code === 'PPS_TUTUP')  pY = 125;
+
+      ctx.strokeStyle = "#0284c7"; // Keluk P
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(25, pY); ctx.lineTo(195, pY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#0284c7";
+      ctx.fillText("P=AR=MR", 135, pY - 4);
+
+      // Keluk MC (Nike Swoosh)
+      ctx.strokeStyle = "#dc2626";
+      ctx.beginPath();
+      ctx.moveTo(40, 130);
+      ctx.quadraticCurveTo(80, 135, 175, 35);
+      ctx.stroke();
+      ctx.fillStyle = "#dc2626";
+      ctx.fillText("MC", 175, 30);
+
+      // Keluk AC (U-shape) - Minimum AC tepat pada Y = 89
+      ctx.strokeStyle = "#d97706";
+      ctx.beginPath();
+      ctx.moveTo(40, 50);
+      ctx.quadraticCurveTo(105, 120, 185, 65);
+      ctx.stroke();
+      ctx.fillStyle = "#d97706";
+      ctx.fillText("AC", 175, 78);
+
+      // Keluk AVC (Bagi Kes Rugi / Titik Penutupan)
+      if (code.includes('TERUS') || code.includes('TITIK') || code.includes('TUTUP')) {
+        ctx.strokeStyle = "#7c3aed";
+        ctx.beginPath();
+        ctx.moveTo(45, 80);
+        ctx.quadraticCurveTo(105, 135, 180, 95);
+        ctx.stroke();
+        ctx.fillStyle = "#7c3aed";
+        ctx.fillText("AVC", 175, 108);
+      }
+    }
+
+    // --- 2. MONOPOLI & 3. PASARAN BERMONOPOLI (PBM) ---
+    else {
+      const isMonopoly = code.startsWith('MONO');
+      const arEndX = isMonopoly ? 140 : 185;
+      const mrEndX = isMonopoly ? 85 : 115;
+
+      // Keluk AR=D=P (Permintaan) & MR
+      ctx.strokeStyle = "#0284c7"; // AR
+      ctx.beginPath();
+      ctx.moveTo(35, 35); ctx.lineTo(arEndX, 135);
+      ctx.stroke();
+      ctx.fillStyle = "#0284c7";
+      ctx.fillText("AR=D=P", arEndX - 15, 142);
+
+      ctx.strokeStyle = "#0284c7"; // MR
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(35, 35); ctx.lineTo(mrEndX, 140);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillText("MR", mrEndX - 5, 145);
+
+      // Keluk MC
+      ctx.strokeStyle = "#dc2626";
+      ctx.beginPath();
+      ctx.moveTo(40, 125);
+      ctx.quadraticCurveTo(75, 130, 160, 40);
+      ctx.stroke();
+      ctx.fillStyle = "#dc2626";
+      ctx.fillText("MC", 160, 35);
+
+      // Keluk AC mengikut Jenis Keuntungan
+      ctx.strokeStyle = "#d97706";
+      ctx.beginPath();
+      
+      if (code.includes('SUPER')) {
+        // Untung Lebih Normal: Keluk AR=D=P memotong/masuk ke dalam kawasan AC (AC di bawah AR)
+        if (isMonopoly) {
+          ctx.moveTo(40, 50); ctx.quadraticCurveTo(85, 122, 175, 65);
+        } else {
+          ctx.moveTo(40, 50); ctx.quadraticCurveTo(95, 122, 180, 65);
+        }
+      } else if (code.includes('NORMAL')) {
+        // Untung Normal: Keluk AR=D=P BERTANGEN dengan keluk AC yang sedang MENURUN
+        if (isMonopoly) {
+          ctx.moveTo(40, 42); ctx.quadraticCurveTo(80, 114, 175, 65);
+        } else {
+          ctx.moveTo(40, 45); ctx.quadraticCurveTo(85, 106, 180, 65);
+        }
+      } else { 
+        // Untung Kurang Normal / Rugi: Keluk AC berada di atas AR sepenuhnya
+        ctx.moveTo(40, 28); ctx.quadraticCurveTo(90, 65, 175, 35);
+      }
+      
+      ctx.stroke();
+      ctx.fillStyle = "#d97706";
+      ctx.fillText("AC", 168, 60);
+    }
+
+    ctx.restore();
+  }
+
+  function gameLoop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('finalName').innerText = `Tahniah, ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
