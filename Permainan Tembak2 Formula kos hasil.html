@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pemburu Formula Ekonomi - Game PdP</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+    #gameContainer {
+      position: relative;
+      width: 900px;
+      height: 650px;
+      border: 4px solid #22c55e;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      background: #0284c7;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+    .screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.92);
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    input[type="text"] {
+      padding: 14px 22px;
+      font-size: 20px;
+      border-radius: 8px;
+      border: 2px solid #22c55e;
+      margin-bottom: 25px;
+      text-align: center;
+      outline: none;
+      width: 300px;
+      background: #1e293b;
+      color: #ffffff;
+    }
+    button {
+      padding: 14px 35px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      background: #22c55e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+      transition: all 0.2s;
+    }
+    button:hover { background: #16a34a; transform: scale(1.03); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #4ade80; margin-bottom: 5px; font-size: 36px;">🎯 PEMBURU FORMULA EKONOMI</h1>
+    <h3 style="color: #cbd5e1; font-weight: 400; margin-bottom: 20px;">Tembak burung yang membawa formula yang TEPAT!</h3>
+    <p style="margin-bottom: 15px; color: #94a3b8; max-width: 500px; line-height: 1.5;">
+      Sasar dan tembak burung yang keluar dari semak dengan formula bagi soalan di bahagian atas layar (Masa: 60 saat).
+    </p>
+    <input type="text" id="playerName" placeholder="Nama Pemain / Pelajar" maxlength="15">
+    <button onclick="startGame()">Mula Memburu</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 style="color: #4ade80; font-size: 38px;">🏆 MASA TAMAT!</h1>
+    <h2 id="finalName" style="color: #f59e0b;"></h2>
+    <h3 style="font-size: 28px; color: #ffffff;">Markah Akhir: <span id="finalScore" style="color: #4ade80;">0</span></h3>
+    <button onclick="resetGame()" style="margin-top: 15px;">Main Semula</button>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="650"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Audio Synthesizer
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'shoot') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'hit') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+    } else if (type === 'miss') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    }
+  }
+
+  // Bank Formula Ekonomi
+  const formulaDatabase = [
+    { name: "JUMLAH KOS (TC)", correct: ["TC = TFC + TVC", "TC = AC × Q"], wrong: ["TR = P × Q", "AC = TC / Q", "MC = ΔTC / ΔQ"] },
+    { name: "JUMLAH HASIL (TR)", correct: ["TR = P × Q", "TR = AR × Q"], wrong: ["TC = TFC + TVC", "AR = TR / Q", "MR = ΔTR / ΔQ"] },
+    { name: "KOS PURATA (AC)", correct: ["AC = TC / Q", "AC = AFC + AVC"], wrong: ["AFC = TFC / Q", "MC = ΔTC / ΔQ", "TC = TFC + TVC"] },
+    { name: "HASIL PURATA (AR)", correct: ["AR = TR / Q", "AR = P"], wrong: ["MR = ΔTR / ΔQ", "TR = P × Q", "AC = TC / Q"] },
+    { name: "KOS TETAP PURATA (AFC)", correct: ["AFC = TFC / Q", "AFC = AC - AVC"], wrong: ["AVC = TVC / Q", "AC = TC / Q", "MC = ΔTC / ΔQ"] },
+    { name: "KOS BERUBAH PURATA (AVC)", correct: ["AVC = TVC / Q", "AVC = AC - AFC"], wrong: ["AFC = TFC / Q", "AC = TC / Q", "TC = TFC + TVC"] },
+    { name: "KOS SUT (MC)", correct: ["MC = ΔTC / ΔQ"], wrong: ["MR = ΔTR / ΔQ", "AC = TC / Q", "TC = TFC + TVC"] },
+    { name: "HASIL SUT (MR)", correct: ["MR = ΔTR / ΔQ"], wrong: ["MC = ΔTC / ΔQ", "AR = TR / Q", "TR = P × Q"] },
+    { name: "UNTUNG (π)", correct: ["Untung = TR - TC"], wrong: ["TR = P × Q", "TC = TFC + TVC", "AC = TC / Q"] }
+  ];
+
+  let studentName = "";
+  let score = 0;
+  let timer = 60;
+  let timerInterval;
+  let isPlaying = false;
+
+  let currentTarget = null;
+  let birds = [];
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+  let shotEffects = [];
+
+  // Posisi Tetikus untuk Sasaran Pemburu
+  let mouseX = 450;
+  let mouseY = 300;
+  let muzzleFlashTimer = 0;
+
+  const bushes = [
+    { x: 150, width: 140 },
+    { x: 450, width: 160 },
+    { x: 750, width: 140 }
+  ];
+
+  class Bird {
+    constructor(x, y, vx, vy, text, isCorrect) {
+      this.x = x;
+      this.y = y;
+      this.vx = vx;
+      this.vy = vy;
+      this.text = text;
+      this.isCorrect = isCorrect;
+      this.radius = 35;
+      this.wingAngle = 0;
+      this.isAlive = true;
+    }
+
+    update() {
+      if (!this.isAlive) {
+        this.y += 8;
+        return;
+      }
+      this.x += this.vx;
+      this.y += this.vy;
+      this.wingAngle += 0.15;
+
+      if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
+      if (this.y < 150) this.vy = Math.abs(this.vy);
+    }
+
+    draw() {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+
+      if (!this.isAlive) {
+        ctx.fillStyle = "#64748b";
+        ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        return;
+      }
+
+      ctx.fillStyle = "#fbbf24";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 22, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(this.vx > 0 ? 15 : -15, -6, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      let dir = this.vx > 0 ? 1 : -1;
+      ctx.moveTo(15 * dir, -8);
+      ctx.lineTo((15 + 10) * dir, -4);
+      ctx.lineTo(15 * dir, 0);
+      ctx.fill();
+
+      ctx.fillStyle = "#d97706";
+      ctx.beginPath();
+      let wingY = Math.sin(this.wingAngle) * 15;
+      ctx.moveTo(-5, -2);
+      ctx.lineTo(-10, -20 + wingY);
+      ctx.lineTo(8, -2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.strokeStyle = "#0284c7";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-65, 22, 130, 32, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(this.text, 0, 43);
+
+      ctx.restore();
+    }
+  }
+
+  function startGame() {
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      alert("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 60;
+    isPlaying = true;
+
+    setNextTarget();
+    spawnBirds();
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame();
+    }, 1000);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function setNextTarget() {
+    const randomIndex = Math.floor(Math.random() * formulaDatabase.length);
+    currentTarget = formulaDatabase[randomIndex];
+  }
+
+  function spawnBirds() {
+    birds = [];
+    
+    const correctAns = currentTarget.correct[Math.floor(Math.random() * currentTarget.correct.length)];
+    
+    let wrongPool = [...currentTarget.wrong];
+    wrongPool.sort(() => 0.5 - Math.random());
+    
+    let birdOptions = [
+      { text: correctAns, isCorrect: true },
+      { text: wrongPool[0], isCorrect: false },
+      { text: wrongPool[1], isCorrect: false }
+    ];
+    
+    birdOptions.sort(() => 0.5 - Math.random());
+
+    birdOptions.forEach((opt, index) => {
+      let bush = bushes[index % bushes.length];
+      let startX = bush.x;
+      let startY = 560;
+      let vx = (Math.random() - 0.5) * 4;
+      if (Math.abs(vx) < 1.5) vx = vx < 0 ? -2 : 2;
+      let vy = - (2.2 + Math.random() * 1.5);
+
+      birds.push(new Bird(startX, startY, vx, vy, opt.text, opt.isCorrect));
+    });
+  }
+
+  // Update Posisi Tetikus
+  function updateMousePosition(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (clientY - rect.top) * (canvas.height / rect.height);
+  }
+
+  canvas.addEventListener('mousemove', (e) => updateMousePosition(e.clientX, e.clientY));
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      updateMousePosition(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  });
+
+  function handleInput(clientX, clientY) {
+    if (!isPlaying) return;
+
+    updateMousePosition(clientX, clientY);
+    playSound('shoot');
+    muzzleFlashTimer = 5; // Tetapkan masa percikan api dari laras
+
+    shotEffects.push({ x: mouseX, y: mouseY, radius: 15, alpha: 1 });
+
+    for (let i = 0; i < birds.length; i++) {
+      let b = birds[i];
+      if (!b.isAlive) continue;
+
+      let dist = Math.hypot(mouseX - b.x, mouseY - b.y);
+      let inBanner = Math.abs(mouseX - b.x) < 65 && Math.abs(mouseY - (b.y + 35)) < 20;
+
+      if (dist < b.radius || inBanner) {
+        b.isAlive = false;
+
+        if (b.isCorrect) {
+          score += 10;
+          playSound('hit');
+          showFeedback("TEPAT! +10", "#4ade80");
+          setTimeout(() => {
+            setNextTarget();
+            spawnBirds();
+          }, 600);
+        } else {
+          score = Math.max(0, score - 5);
+          playSound('miss');
+          showFeedback("SALAH! -5", "#f87171");
+        }
+        break;
+      }
+    }
+  }
+
+  canvas.addEventListener('mousedown', (e) => handleInput(e.clientX, e.clientY));
+
+  function showFeedback(msg, color) {
+    feedbackMessage = { text: msg, color: color };
+    feedbackTimer = 50;
+  }
+
+  function update() {
+    birds.forEach(b => b.update());
+
+    let activeBirds = birds.filter(b => b.y > -50 && b.y < 680 && b.isAlive);
+    if (activeBirds.length === 0 && birds.length > 0) {
+      spawnBirds();
+    }
+
+    if (feedbackTimer > 0) feedbackTimer--;
+    if (muzzleFlashTimer > 0) muzzleFlashTimer--;
+
+    shotEffects.forEach(s => {
+      s.radius += 2;
+      s.alpha -= 0.08;
+    });
+    shotEffects = shotEffects.filter(s => s.alpha > 0);
+  }
+
+  function drawBackground() {
+    let skyGradient = ctx.createLinearGradient(0, 0, 0, 500);
+    skyGradient.addColorStop(0, '#38bdf8');
+    skyGradient.addColorStop(1, '#bae6fd');
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.beginPath(); ctx.arc(180, 100, 30, 0, Math.PI * 2); ctx.arc(210, 90, 40, 0, Math.PI * 2); ctx.arc(240, 100, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(680, 120, 25, 0, Math.PI * 2); ctx.arc(705, 110, 35, 0, Math.PI * 2); ctx.arc(730, 120, 25, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = "#15803d";
+    ctx.beginPath();
+    ctx.moveTo(0, 550);
+    ctx.quadraticCurveTo(200, 420, 450, 550);
+    ctx.quadraticCurveTo(700, 440, 900, 550);
+    ctx.lineTo(900, 650); ctx.lineTo(0, 650);
+    ctx.fill();
+
+    bushes.forEach(b => {
+      ctx.fillStyle = "#166534";
+      ctx.beginPath();
+      ctx.arc(b.x - 30, 580, 45, 0, Math.PI * 2);
+      ctx.arc(b.x + 30, 580, 45, 0, Math.PI * 2);
+      ctx.arc(b.x, 555, 55, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // Fungsi Melukis Watak Pemburu Memegang Senapang
+  function drawHunter() {
+    const hunterX = 450; // Posisi Pemburu di tengah bawah
+    const hunterY = 575;
+
+    // Kira sudut pusingan laras senapang mengikut kursor tetikus
+    const angle = Math.atan2(mouseY - (hunterY - 15), mouseX - hunterX);
+
+    ctx.save();
+
+    // 1. Badan / Jaket Pemburu (Khaki/Perang)
+    ctx.fillStyle = "#854d0e";
+    ctx.beginPath();
+    ctx.ellipse(hunterX, hunterY + 20, 28, 35, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rompi Oren Pemburu (Hunting Safety Vest)
+    ctx.fillStyle = "#f97316";
+    ctx.fillRect(hunterX - 18, hunterY, 36, 30);
+
+    // 2. Kepala Pemburu
+    ctx.fillStyle = "#fca5a5"; // Warna kulit
+    ctx.beginPath();
+    ctx.arc(hunterX, hunterY - 15, 16, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Topi Pemburu (Hijau dengan Wisor)
+    ctx.fillStyle = "#15803d";
+    ctx.beginPath();
+    ctx.arc(hunterX, hunterY - 20, 18, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(hunterX - 22, hunterY - 20, 44, 5); // Brim topi
+
+    // 3. Senapang Pemburu (Berputar mengikut sudut 'angle')
+    ctx.save();
+    ctx.translate(hunterX, hunterY - 12);
+    ctx.rotate(angle);
+
+    // Pemegang Kayu Senapang (Stock)
+    ctx.fillStyle = "#78350f";
+    ctx.fillRect(-12, -4, 25, 8);
+
+    // Laras Besi Senapang (Barrel)
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(13, -3, 45, 6);
+
+    // Percikan Api Hujung Laras semasa Menembak (Muzzle Flash)
+    if (muzzleFlashTimer > 0) {
+      ctx.fillStyle = "#f59e0b";
+      ctx.beginPath();
+      ctx.arc(62, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#fef08a";
+      ctx.beginPath();
+      ctx.arc(62, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    // Tangan Pemburu
+    ctx.fillStyle = "#fca5a5";
+    ctx.beginPath();
+    ctx.arc(hunterX - 8, hunterY - 5, 6, 0, Math.PI * 2);
+    ctx.arc(hunterX + 10, hunterY - 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function draw() {
+    drawBackground();
+
+    // Lukis Burung
+    birds.forEach(b => b.draw());
+
+    // Lukis Watak Pemburu dengan Senapang
+    drawHunter();
+
+    // Kesan visual tembakan pada kursor
+    shotEffects.forEach(s => {
+      ctx.strokeStyle = `rgba(239, 68, 68, ${s.alpha})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // Header Soalan Formula
+    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+    ctx.fillRect(20, 15, canvas.width - 40, 90);
+    ctx.strokeStyle = "#4ade80";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(20, 15, canvas.width - 40, 90);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("SASAR DAN TEMBAK FORMULA BAGI:", canvas.width / 2, 42);
+
+    ctx.fillStyle = "#4ade80";
+    ctx.font = "bold 24px Arial";
+    ctx.fillText(currentTarget.name, canvas.width / 2, 80);
+
+    // HUD Bawah
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Pemburu: ${studentName}`, 25, canvas.height - 14);
+
+    ctx.textAlign = "center";
+    ctx.fillText(`⏳ Masa: ${timer}s`, canvas.width / 2, canvas.height - 14);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 25, canvas.height - 14);
+
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+      ctx.fillRect(canvas.width / 2 - 130, canvas.height / 2 - 30, 260, 60);
+      ctx.fillStyle = feedbackMessage.color;
+      ctx.font = "bold 24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage.text, canvas.width / 2, canvas.height / 2 + 8);
+    }
+  }
+
+  function gameLoop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('finalName').innerText = `Syabas, Pemburu ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
