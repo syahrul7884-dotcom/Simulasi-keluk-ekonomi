@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dino Ekonomi - Mobile Friendly Edition</title>
+  <style>
+    * { box-sizing: border-box; touch-action: manipulation; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e0f2fe;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 95vw;
+      max-width: 900px;
+      aspect-ratio: 16 / 9;
+      border: 4px solid #0284c7;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.2);
+      background: #ffffff;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.96);
+      z-index: 10;
+      padding: 15px;
+      text-align: center;
+    }
+
+    input[type="text"] {
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 2px solid #0284c7;
+      margin-bottom: 12px;
+      text-align: center;
+      outline: none;
+      width: 80%;
+      max-width: 280px;
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 12px 32px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      background: #0284c7;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      transition: all 0.2s;
+    }
+    button:active { background: #0369a1; transform: scale(0.96); }
+
+    .rules-box {
+      background: #f1f5f9;
+      border: 2px solid #d97706;
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-bottom: 12px;
+      max-width: 650px;
+      width: 100%;
+      text-align: left;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #1e293b;
+    }
+
+    .touch-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .btn-jump {
+      pointer-events: auto;
+      width: 140px;
+      height: 52px;
+      border-radius: 26px;
+      background: rgba(2, 132, 199, 0.9);
+      border: 3px solid #ffffff;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      touch-action: manipulation;
+    }
+    .btn-jump:active { background: #0369a1; transform: scale(0.95); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #0284c7; margin-top:0; margin-bottom: 5px; font-size: 26px;">🦖 DINO EKONOMI</h1>
+    <h3 style="color: #475569; font-weight: 500; margin-bottom: 10px; font-size: 14px;">Topik: Teori Kos & Struktur Pasaran</h3>
+    
+    <div class="rules-box">
+      <b style="color: #d97706; font-size: 13px;">📌 CARA BERMAIN:</b><br>
+      • Dino berlari secara automatik ke hadapan.<br>
+      • <b>KAWALAN:</b> Tekan <span style="color: #0284c7; font-weight:bold;">SPACEBAR / PANAH ATAS</span> atau butang <span style="color: #0284c7; font-weight:bold;">🦘 LOMPAT</span>.<br>
+      • <span style="color: #16a34a; font-weight:bold;">AMBIL / SENTUH</span> jawapan yang <b>SEPADAN</b> dengan Tugasan (+10 Markah).<br>
+      • <span style="color: #dc2626; font-weight:bold;">LOMPATI</span> jawapan yang <b>SALAH</b> untuk mengelaknya (-3 Markah & -1 Nyawa ❤️)!<br>
+      • 🌟 <b>Bonus:</b> 3 jawapan tepat berturut-turut menambah <span style="color: #db2777; font-weight:bold;">+1 Nyawa ❤</span>.
+    </div>
+
+    <input type="text" id="playerName" placeholder="Nama Pemain / Pelajar" maxlength="15">
+    <button onclick="startGame()">MULA LARIAN</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 id="endTitle" style="color: #0284c7; font-size: 28px;">🏁 TAMAT LARIAN!</h1>
+    <h2 id="finalName" style="color: #d97706; font-size: 20px;"></h2>
+    <h3 style="font-size: 22px; color: #0f172a;">Markah Akhir: <span id="finalScore" style="color: #16a34a;">0</span></h3>
+    <button onclick="resetGame()" style="margin-top: 10px;">MAIN SEMULA</button>
+  </div>
+
+  <!-- Touch Jump Control -->
+  <div class="touch-controls">
+    <div class="btn-jump" id="btnJump">🦘 LOMPAT</div>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="500"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // --- FUNKSI LUKISAN ROUNDED RECTANGLE ASLI (MOBILE SERASI) ---
+  function drawRoundedRect(ctx, x, y, width, height, radius, fill = true, stroke = false) {
+    if (radius > width / 2) radius = width / 2;
+    if (radius > height / 2) radius = height / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, radius);
+    ctx.arcTo(x + width, y + height, x, y + height, radius);
+    ctx.arcTo(x, y + height, x, y, radius);
+    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // --- AUDIO CONTEXT MESRA MOBILE ---
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'jump') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.14);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.14);
+      } else if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.22);
+      } else if (type === 'damage') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(70, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+      } else if (type === 'heal') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+      }
+    } catch(e) {}
+  }
+
+  // Database Kategori Ekonomi
+  const categories = [
+    { id: 'INPUT_TETAP', label: 'INPUT TETAP', items: ['Bangunan Kilang', 'Mesin Utama', 'Sewa Kilang', 'Insurans Kilang', 'Peralatan Pejabat'] },
+    { id: 'INPUT_BERUBAH', label: 'INPUT BERUBAH', items: ['Bahan Mentah', 'Pekerja Sambilan', 'Bil Elektrik', 'Bil Air', 'Petrol / Bahan Bakar'] },
+    { id: 'UNTUNG_NORMAL_PPS_JP', label: 'UNTUNG NORMAL PPS (J. PANJANG)', items: ['TR = TC', 'P = AC', 'AR = AC', 'Saksama Kos Min', 'P = MC'] },
+    { id: 'UNTUNG_LEBIH_MONOPOLI_JP', label: 'UNTUNG LEBIH MONOPOLI (J. PANJANG)', items: ['TR > TC', 'P > AC', 'Eksploitasi Pengguna', 'Halangan Masuk Kebal', 'Untung Ekonomi'] },
+    { id: 'UNTUNG_NORMAL_BERMONOPOLI_JP', label: 'UNTUNG NORMAL PASARAN BERMONOPOLI (J. PANJANG)', items: ['Kebebasan Masuk Keluar', 'TR = TC', 'P = AC', 'Lebihan Kapasiti', 'Kapasiti Terbiar'] },
+    { id: 'PPS_TUTUP_OPERASI', label: 'PPS TUTUP OPERASI', items: ['AR < AVC', 'P < AVC', 'Rugi > Kos Tetap', 'TR < TVC', 'Hasil Tak Cukup'] },
+    { id: 'PPS_TERUS_OPERASI', label: 'PPS TERUS OPERASI (J. PENDEK)', items: ['AR > AVC', 'P > AVC', 'Rugi < Kos Tetap', 'TR > TVC', 'Boleh Bayar TVC'] },
+    { id: 'UNTUNG_LEBIH_NORMAL', label: 'UNTUNG LEBIH NORMAL (AM)', items: ['TR > TC', 'P > AC', 'AR > AC', 'Jumlah Hasil > Kos'] },
+    { id: 'UNTUNG_NORMAL', label: 'UNTUNG NORMAL (AM)', items: ['TR = TC', 'P = AC', 'AR = AC', 'Jumlah Hasil = Kos'] }
+  ];
+
+  // Variabel Utama Permainan
+  let studentName = "";
+  let score = 0;
+  let timer = 75;
+  let lives = 5;
+  let comboCount = 0;
+  let timerInterval;
+  let isPlaying = false;
+
+  let currentTargetCat = null;
+  let obstacles = [];
+  let gameSpeed = 3.2; 
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+
+  const groundY = 390;
+
+  // Objek Dino
+  const dino = {
+    x: 100,
+    y: groundY - 50,
+    width: 44,
+    height: 50,
+    velocityY: 0,
+    gravity: 0.52,
+    jumpStrength: -15.5,
+    isGrounded: true,
+    legAngle: 0
+  };
+
+  let groundOffset = 0;
+
+  function startGame() {
+    initAudio();
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      alert("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 75;
+    lives = 5;
+    comboCount = 0;
+    isPlaying = true;
+    obstacles = [];
+
+    dino.y = groundY - dino.height;
+    dino.velocityY = 0;
+    dino.isGrounded = true;
+
+    setNextTargetCategory();
+    spawnObstacle();
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame("🏁 MASA TAMAT!");
+    }, 1000);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function setNextTargetCategory() {
+    const randomIndex = Math.floor(Math.random() * categories.length);
+    currentTargetCat = categories[randomIndex];
+  }
+
+  function spawnObstacle() {
+    const isMatch = Math.random() < 0.45;
+    let chosenCat, itemText;
+
+    if (isMatch) {
+      chosenCat = currentTargetCat;
+    } else {
+      let otherCats = categories.filter(c => c.id !== currentTargetCat.id);
+      chosenCat = otherCats[Math.floor(Math.random() * otherCats.length)];
+    }
+
+    itemText = chosenCat.items[Math.floor(Math.random() * chosenCat.items.length)];
+
+    obstacles.push({
+      x: canvas.width + 50,
+      y: groundY - 48,
+      width: 95,
+      height: 48,
+      text: itemText,
+      isMatch: isMatch,
+      hit: false,
+      passed: false
+    });
+  }
+
+  function doJump() {
+    if (dino.isGrounded && isPlaying) {
+      dino.velocityY = dino.jumpStrength;
+      dino.isGrounded = false;
+      playSound('jump');
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+      e.preventDefault();
+      doJump();
+    }
+  });
+
+  const btnJump = document.getElementById('btnJump');
+  btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); }, { passive: false });
+  btnJump.addEventListener('mousedown', (e) => { e.preventDefault(); doJump(); });
+
+  function showFeedback(msg, color) {
+    feedbackMessage = { text: msg, color: color };
+    feedbackTimer = 45;
+  }
+
+  function update() {
+    // Graviti Dino
+    dino.velocityY += dino.gravity;
+    dino.y += dino.velocityY;
+
+    if (dino.y >= groundY - dino.height) {
+      dino.y = groundY - dino.height;
+      dino.velocityY = 0;
+      dino.isGrounded = true;
+    }
+
+    dino.legAngle += 0.2;
+    groundOffset = (groundOffset + gameSpeed) % 30;
+
+    // Pergerakan Objek Jawapan
+    for (let i = 0; i < obstacles.length; i++) {
+      let obs = obstacles[i];
+      obs.x -= gameSpeed;
+
+      // Hitbox Mesra
+      let dinoBox = { x: dino.x + 8, y: dino.y + 6, w: dino.width - 16, h: dino.height - 10 };
+      let obsBox = { x: obs.x + 8, y: obs.y + 6, w: obs.width - 16, h: obs.height - 10 };
+
+      let isColliding = dinoBox.x < obsBox.x + obsBox.w &&
+                        dinoBox.x + dinoBox.w > obsBox.x &&
+                        dinoBox.y < obsBox.y + obsBox.h &&
+                        dinoBox.y + dinoBox.h > obsBox.y;
+
+      if (isColliding && !obs.hit) {
+        obs.hit = true;
+
+        if (obs.isMatch) {
+          score += 10;
+          comboCount++;
+
+          if (comboCount >= 3) {
+            if (lives < 5) {
+              lives++;
+              playSound('heal');
+              showFeedback("KOMBO 3x! +1 NYAWA ❤️", "#db2777");
+            } else {
+              playSound('hit');
+              showFeedback("KOMBO 3x! TEPAT! +10", "#16a34a");
+            }
+            comboCount = 0;
+          } else {
+            playSound('hit');
+            showFeedback("TEPAT! +10", "#16a34a");
+          }
+
+          setNextTargetCategory();
+        } else {
+          score = Math.max(0, score - 3);
+          lives--;
+          comboCount = 0;
+          playSound('damage');
+          showFeedback("TERLANGGAR SALAH! -3", "#dc2626");
+
+          if (lives <= 0) {
+            endGame("💔 DINO PENAT / NYAWA HABIS!");
+            return;
+          }
+        }
+      }
+
+      if (obs.x + obs.width < dino.x && !obs.passed && !obs.hit) {
+        obs.passed = true;
+        if (!obs.isMatch) {
+          score += 2;
+        }
+      }
+    }
+
+    obstacles = obstacles.filter(obs => obs.x > -150);
+
+    if (obstacles.length === 0 || (canvas.width - obstacles[obstacles.length - 1].x > 500)) {
+      spawnObstacle();
+    }
+
+    if (feedbackTimer > 0) feedbackTimer--;
+  }
+
+  function drawBackground() {
+    // Langit Cerah
+    ctx.fillStyle = "#e0f2fe";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Landasan / Tanah
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    ctx.lineTo(canvas.width, groundY);
+    ctx.stroke();
+
+    // Garisan Jejak
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 2;
+    for (let x = -groundOffset; x < canvas.width; x += 30) {
+      ctx.beginPath();
+      ctx.moveTo(x, groundY + 12);
+      ctx.lineTo(x + 12, groundY + 12);
+      ctx.stroke();
+    }
+  }
+
+  function drawDino() {
+    ctx.save();
+    ctx.translate(dino.x, dino.y);
+
+    // Badan Dino (Hijau Cerah)
+    ctx.fillStyle = "#22c55e";
+    drawRoundedRect(ctx, 5, 10, 30, 32, 6, true, false);
+
+    // Kepala & Mulut
+    drawRoundedRect(ctx, 15, 0, 26, 20, 5, true, false);
+
+    // Mata
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(32, 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tangan Kecil
+    ctx.fillStyle = "#16a34a";
+    ctx.fillRect(28, 22, 8, 4);
+
+    // Kaki Dino
+    ctx.fillStyle = "#15803d";
+    if (dino.isGrounded) {
+      let leg1 = Math.sin(dino.legAngle) * 8;
+      let leg2 = -Math.sin(dino.legAngle) * 8;
+      ctx.fillRect(10 + leg1, 40, 6, 10);
+      ctx.fillRect(22 + leg2, 40, 6, 10);
+    } else {
+      ctx.fillRect(12, 40, 6, 6);
+      ctx.fillRect(22, 38, 6, 6);
+    }
+
+    // Ekor
+    ctx.beginPath();
+    ctx.moveTo(5, 25);
+    ctx.lineTo(-6, 30);
+    ctx.lineTo(5, 35);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawObstacle(obs) {
+    if (obs.hit) return;
+
+    ctx.save();
+    ctx.translate(obs.x, obs.y);
+
+    // Papan Jawapan
+    ctx.fillStyle = "#facc15";
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 2.5;
+    drawRoundedRect(ctx, 0, 0, obs.width, obs.height, 6, true, true);
+
+    // Tiang Papan
+    ctx.fillStyle = "#64748b";
+    ctx.fillRect(obs.width / 2 - 3, obs.height, 6, groundY - (obs.y + obs.height));
+
+    // Susunan Teks Berbilang Baris
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 11px 'Segoe UI', Arial";
+    ctx.textAlign = "center";
+    
+    let words = obs.text.split(" ");
+    if (words.length > 2) {
+      let mid = Math.ceil(words.length / 2);
+      let line1 = words.slice(0, mid).join(" ");
+      let line2 = words.slice(mid).join(" ");
+      ctx.fillText(line1, obs.width / 2, obs.height / 2 - 4);
+      ctx.fillText(line2, obs.width / 2, obs.height / 2 + 10);
+    } else {
+      ctx.fillText(obs.text, obs.width / 2, obs.height / 2 + 4);
+    }
+
+    ctx.restore();
+  }
+
+  function drawHUD() {
+    // Kotak Arahan Tugasan
+    ctx.fillStyle = "#ffffff";
+    drawRoundedRect(ctx, 15, 10, canvas.width - 30, 70, 8, true, false);
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 3;
+    drawRoundedRect(ctx, 15, 10, canvas.width - 30, 70, 8, false, true);
+
+    ctx.fillStyle = "#1e40af";
+    ctx.font = "bold 12px 'Segoe UI', Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("TUGASAN: AMBIL JAWAPAN TEPAT / LOMPATI JAWAPAN SALAH:", canvas.width / 2, 28);
+
+    ctx.fillStyle = "#d97706";
+    ctx.font = "bold 20px 'Segoe UI', Arial";
+    ctx.fillText(`CARI: ${currentTargetCat.label}`, canvas.width / 2, 58);
+
+    // Bar Maklumat Bawah
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, canvas.height - 35, canvas.width, 35);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 14px 'Segoe UI', Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Pelari: ${studentName}`, 20, canvas.height - 12);
+
+    let hearts = "❤️".repeat(lives);
+    ctx.textAlign = "center";
+    ctx.fillText(`Nyawa: ${hearts}   |   ⏳ Masa: ${timer}s`, canvas.width / 2, canvas.height - 12);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 20, canvas.height - 12);
+
+    // Pop-up Maklum Balas
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "#ffffff";
+      drawRoundedRect(ctx, canvas.width / 2 - 160, canvas.height / 2 - 30, 320, 60, 8, true, false);
+      ctx.strokeStyle = "#0284c7";
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, canvas.width / 2 - 160, canvas.height / 2 - 30, 320, 60, 8, false, true);
+
+      ctx.fillStyle = feedbackMessage.color;
+      ctx.font = "bold 18px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage.text, canvas.width / 2, canvas.height / 2 + 6);
+    }
+  }
+
+  function draw() {
+    drawBackground();
+    obstacles.forEach(obs => drawObstacle(obs));
+    drawDino();
+    drawHUD();
+  }
+
+  function gameLoop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame(titleText) {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('endTitle').innerText = titleText;
+    document.getElementById('finalName').innerText = `Larian Mantap, ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
