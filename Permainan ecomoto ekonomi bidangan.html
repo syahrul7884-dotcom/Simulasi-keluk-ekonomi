@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EcoRace: Motosikal Ekonomi Bidangan</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 95vw;
+      max-width: 920px;
+      aspect-ratio: 16 / 9;
+      border: 4px solid #38bdf8;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 12px 35px rgba(56, 189, 248, 0.3);
+      background: #0284c7;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.96);
+      z-index: 10;
+      padding: 24px;
+      text-align: center;
+    }
+
+    input[type="text"] {
+      padding: 12px 20px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: 2.5px solid #0284c7;
+      margin-bottom: 15px;
+      text-align: center;
+      outline: none;
+      width: 300px;
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: bold;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    button {
+      padding: 12px 36px;
+      font-size: 19px;
+      font-weight: bold;
+      color: #ffffff;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #0369a1, #075985);
+      transform: scale(1.04);
+    }
+
+    .rules-box {
+      background: #f0f9ff;
+      border: 2px solid #0284c7;
+      border-radius: 12px;
+      padding: 14px 22px;
+      margin-bottom: 16px;
+      max-width: 760px;
+      text-align: left;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #1e293b;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .touch-controls {
+      position: absolute;
+      bottom: 42px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 25px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .btn-steer {
+      pointer-events: auto;
+      width: 135px;
+      height: 58px;
+      border-radius: 29px;
+      background: rgba(2, 132, 199, 0.94);
+      border: 3px solid #ffffff;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+    }
+
+    .btn-steer:active {
+      background: #0369a1;
+      transform: scale(0.94);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .error-toast {
+      position: absolute;
+      top: 15px;
+      background: #ef4444;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <div id="toast" class="error-toast"></div>
+
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #0284c7; margin-bottom: 4px; font-size: 29px; letter-spacing: -0.5px;">
+      🏍️ ECORACE: MOTOSIKAL EKONOMI BIDANGAN
+    </h1>
+    <h3 style="color: #0369a1; font-weight: 600; margin-top: 0; margin-bottom: 12px; font-size: 15.5px;">
+      Topik & Penentu: Ekonomi Bidangan Dalaman, Tak Ekonomi Bidangan Dalaman, Ekonomi Bidangan Luaran & Tak Ekonomi Bidangan Luaran
+    </h3>
+
+    <div class="rules-box">
+      <b style="color: #d97706; font-size: 14.5px;">📌 PERATURAN PERMAINAN PERMULAAN BERBERSIH:</b><br>
+      • <b>Tiada Halangan Mengejut:</b> Jalan raya bersih tanpa minyak atau kerosakan mengejut.<br>
+      • <b>KAWALAN:</b> Tekan <span style="color: #0284c7; font-weight:bold;">PANAH KIRI / KANAN</span> (atau A/D) & butang skrin sentuh <span style="color: #0284c7; font-weight:bold;">◄ KIRI / KANAN ►</span>.<br>
+      • 🎯 <span style="color: #16a34a; font-weight:bold;">LANGGAR</span> papan jawapan yang <b>SEPADAN</b> dengan Tugasan di atas (+10 Markah).<br>
+      • 🛑 <span style="color: #dc2626; font-weight:bold;">ELAK</span> papan jawapan yang <b>SALAH</b> (-3 Markah & -1 Nyawa ❤️).<br>
+      • 🌟 <b>Bonus Elak:</b> Jawapan salah yang dielak melepasi skrin menambah <span style="color: #0284c7; font-weight:bold;">+2 Markah Bonus</span>.<br>
+      • ❤️ <b>Bonus Kombo:</b> 3 jawapan tepat berturut-turut menambah <span style="color: #db2777; font-weight:bold;">+1 Nyawa ❤️</span>.<br>
+      • ⚡ <i>Masa membaca luas: Papan jawapan bergerak perlahan dari atas & memberi ruang selamat untuk membaca!</i>
+    </div>
+
+    <input type="text" id="playerName" placeholder="Nama Penunggang / Pelajar" maxlength="15">
+    <button onclick="startGame()">Mula Perlumbaan Motosikal</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 id="endTitle" style="color: #0284c7; font-size: 32px;">🏁 TAMAT PERLUMBAAN!</h1>
+    <h2 id="finalName" style="color: #d97706; font-size: 22px;"></h2>
+    <h3 style="font-size: 26px; color: #0f172a;">Markah Akhir: <span id="finalScore" style="color: #16a34a;">0</span></h3>
+    <button onclick="resetGame()" style="margin-top: 15px;">Main Semula</button>
+  </div>
+
+  <!-- Touch Steering Controls -->
+  <div class="touch-controls">
+    <div class="btn-steer" id="btnLeft">◄ KIRI</div>
+    <div class="btn-steer" id="btnRight">KANAN ►</div>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="550"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Web Audio API Sintetik
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'steer') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(360, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(520, audioCtx.currentTime + 0.07);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.07);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.07);
+    } else if (type === 'hitCorrect') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.09);
+      osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+    } else if (type === 'hitWrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(170, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(65, audioCtx.currentTime + 0.28);
+      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.28);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.28);
+    } else if (type === 'heal') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    }
+  }
+
+  // Kurikulum Ekonomi Bidangan (Lengkap dengan Penentu)
+  const categories = [
+    {
+      id: 'EKONOMI_BIDANGAN_DALAMAN',
+      label: 'EKONOMI BIDANGAN DALAMAN',
+      items: [
+        'Ekonomi Pengurusan (Pengkhususan Pengurus)',
+        'Ekonomi Teknikal (Guna Mesin Canggih)',
+        'Ekonomi Kewangan (Faedah Pinjaman Rendah)',
+        'Ekonomi Pemasaran (Diskaun Belian Pukal)',
+        'Ekonomi Risiko (Diversifikasi Produk)',
+        'Penentu: R&D & Inovasi Sendiri',
+        'Penentu: Kecekapan Pengurusan Internal',
+        'Penentu: Pembelian Pukal Bahan Mentah'
+      ]
+    },
+    {
+      id: 'TAK_EKONOMI_BIDANGAN_DALAMAN',
+      label: 'TAK EKONOMI BIDANGAN DALAMAN',
+      items: [
+        'Birokrasi Melampau Pentadbiran',
+        'Masalah Komunikasi Internal',
+        'Kelewatan Membuat Keputusan',
+        'Mogok Pekerja & Ketidakpuasan Hati',
+        'Kesesakan Ruang Kilang',
+        'Kerosakan Kerap Mesin Industri',
+        'Penentu: Kelemahan Kawalan Pengurusan',
+        'Penentu: Kos Purata (AC) Meningkat'
+      ]
+    },
+    {
+      id: 'EKONOMI_BIDANGAN_LUARAN',
+      label: 'EKONOMI BIDANGAN LUARAN',
+      items: [
+        'Infrastruktur Lengkap (Jalan & Pelabuhan)',
+        'Bekalan Pekerja Mahir dari IPT/TVET',
+        'Pusat Latihan Dekat Kawasan Kilang',
+        'Kemudahan Bank & Insurans Sekitar',
+        'Integrasi Antara Firma Industri',
+        'Penentu: Kemudahan Luaran Kawasan',
+        'Penentu: Akses Maklumat Pasaran Luas'
+      ]
+    },
+    {
+      id: 'TAK_EKONOMI_BIDANGAN_LUARAN',
+      label: 'TAK EKONOMI BIDANGAN LUARAN',
+      items: [
+        'Kesesakan Lalu Lintas Teruk Industri',
+        'Pencemaran Udara & Air Sekitar',
+        'Persaingan Sengit Bahan Mentah',
+        'Sewa Tanah & Hartanah Melambung',
+        'Pencemaran Sisa Toksik Kilang',
+        'Penentu: Persaingan Rebut Faktor Pengeluaran',
+        'Penentu: Kesesakan Lokasi Industri'
+      ]
+    }
+  ];
+
+  let studentName = "";
+  let score = 0;
+  let timer = 80;
+  let lives = 5;
+  let comboCount = 0;
+  let timerInterval;
+  let isPlaying = false;
+
+  let currentTargetCat = null;
+  let obstacles = [];
+  let particles = [];
+  let trees = [];
+  let gameSpeed = 2.0; // Kelajuan terurus, sangat perlahan & selesa untuk membaca klu
+  let spawnGraceTimer = 0; // Tempoh bertenang sebelum gelombang baharu
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+  let screenShake = 0;
+
+  // Layout Jalan Raya & 4 Lorong
+  const roadWidth = 480;
+  const roadLeft = (canvas.width - roadWidth) / 2;
+  const laneWidth = roadWidth / 4;
+  const laneCenters = [
+    roadLeft + laneWidth * 0.5,
+    roadLeft + laneWidth * 1.5,
+    roadLeft + laneWidth * 2.5,
+    roadLeft + laneWidth * 3.5
+  ];
+
+  // Motosikal Top-Down
+  const bike = {
+    lane: 1,
+    x: laneCenters[1],
+    y: canvas.height - 110,
+    width: 32,
+    height: 64,
+    targetX: laneCenters[1]
+  };
+
+  let roadOffsetY = 0;
+
+  for (let i = 0; i < 8; i++) {
+    trees.push({
+      x: Math.random() < 0.5 ? Math.random() * (roadLeft - 60) + 20 : roadLeft + roadWidth + Math.random() * (canvas.width - roadLeft - roadWidth - 60) + 20,
+      y: Math.random() * canvas.height,
+      radius: Math.random() * 12 + 18
+    });
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2500);
+  }
+
+  function startGame() {
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      showToast("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 80;
+    lives = 5;
+    comboCount = 0;
+    isPlaying = true;
+    obstacles = [];
+    particles = [];
+
+    bike.lane = 1;
+    bike.x = laneCenters[1];
+    bike.targetX = laneCenters[1];
+
+    setNextTargetCategory();
+    
+    // Masa bertenang awal 2.5 saat untuk penunggang bersedia
+    spawnGraceTimer = 130; 
+    showFeedback("SEDIA... BACA TUGASAN DI ATAS!", "#0284c7");
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame("🏁 MASA TAMAT!");
+    }, 1000);
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  function setNextTargetCategory() {
+    const randomIndex = Math.floor(Math.random() * categories.length);
+    currentTargetCat = categories[randomIndex];
+  }
+
+  function spawnWave() {
+    // 1 atau 2 lorong sahaja diisi supaya SENTIASA ada sekurang-kurangnya 2 lorong kosong untuk mengelak
+    let availableLanes = [0, 1, 2, 3];
+    availableLanes.sort(() => Math.random() - 0.5);
+
+    let numItems = Math.random() < 0.6 ? 1 : 2; 
+    let chosenLanes = availableLanes.slice(0, numItems);
+
+    let hasCorrectInWave = Math.random() < 0.85; 
+    let correctLaneIndex = Math.floor(Math.random() * chosenLanes.length);
+
+    chosenLanes.forEach((laneIdx, idx) => {
+      let isMatch = hasCorrectInWave && (idx === correctLaneIndex);
+      let chosenCat, itemText;
+
+      if (isMatch) {
+        chosenCat = currentTargetCat;
+      } else {
+        let otherCats = categories.filter(c => c.id !== currentTargetCat.id);
+        chosenCat = otherCats[Math.floor(Math.random() * otherCats.length)];
+      }
+
+      itemText = chosenCat.items[Math.floor(Math.random() * chosenCat.items.length)];
+
+      obstacles.push({
+        lane: laneIdx,
+        x: laneCenters[laneIdx],
+        y: -90, // Bermula tinggi jauh di atas skrin
+        width: 106,
+        height: 56,
+        text: itemText,
+        isMatch: isMatch,
+        hit: false,
+        passed: false
+      });
+    });
+  }
+
+  function moveLeft() {
+    if (!isPlaying) return;
+    if (bike.lane > 0) {
+      bike.lane--;
+      bike.targetX = laneCenters[bike.lane];
+      playSound('steer');
+    }
+  }
+
+  function moveRight() {
+    if (!isPlaying) return;
+    if (bike.lane < 3) {
+      bike.lane++;
+      bike.targetX = laneCenters[bike.lane];
+      playSound('steer');
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+  });
+
+  document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft(); });
+  document.getElementById('btnLeft').addEventListener('mousedown', (e) => { e.preventDefault(); moveLeft(); });
+  document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveRight(); });
+  document.getElementById('btnRight').addEventListener('mousedown', (e) => { e.preventDefault(); moveRight(); });
+
+  function showFeedback(msg, color) {
+    feedbackMessage = { text: msg, color: color };
+    feedbackTimer = 55;
+  }
+
+  function update() {
+    // Pergerakan lancar motosikal antara lorong
+    bike.x += (bike.targetX - bike.x) * 0.25;
+
+    roadOffsetY = (roadOffsetY + gameSpeed) % 40;
+
+    // Pergerakan Pokok di Tepi Jalan Raya
+    trees.forEach(t => {
+      t.y += gameSpeed;
+      if (t.y > canvas.height + 40) {
+        t.y = -40;
+      }
+    });
+
+    // Zarah Asap Ekzos Motosikal
+    if (Math.random() < 0.6) {
+      particles.push({
+        x: bike.x + (Math.random() - 0.5) * 6,
+        y: bike.y + bike.height - 2,
+        radius: Math.random() * 2.5 + 1.5,
+        color: 'rgba(203, 213, 225, 0.75)',
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: Math.random() * 1.5 + 1,
+        life: 18
+      });
+    }
+
+    // Kemaskini Zarah
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+    });
+    particles = particles.filter(p => p.life > 0);
+
+    // Pengurusan Tempoh Bertenang / Grace Period
+    if (spawnGraceTimer > 0) {
+      spawnGraceTimer--;
+    } else {
+      // Penjanaan Gelombang Papan Jawapan Baharu (Dengan Jarak Minimal 380px)
+      let canSpawn = false;
+      if (obstacles.length === 0) {
+        canSpawn = true;
+      } else {
+        let lastObstacle = obstacles[obstacles.length - 1];
+        if (lastObstacle.y >= 380) {
+          canSpawn = true;
+        }
+      }
+
+      if (canSpawn) {
+        spawnWave();
+      }
+    }
+
+    // Kemaskini Papan Jawapan
+    for (let i = 0; i < obstacles.length; i++) {
+      let obs = obstacles[i];
+      obs.y += gameSpeed;
+
+      // PENTING: Pemeriksaan Percanggahan Hanya Berlaku Apabila Papan Berada Tepat Pada Aras Motosikal
+      // Motosikal berada di bike.y ≈ 440px. Hanya periksa bila obs.y berada antara 410px dan 480px!
+      let isOnBikeLevel = (obs.y >= bike.y - 30 && obs.y <= bike.y + 40);
+
+      if (isOnBikeLevel && obs.lane === bike.lane && !obs.hit) {
+        obs.hit = true;
+
+        if (obs.isMatch) {
+          // LANGGAR JAWAPAN BETUL
+          score += 10;
+          comboCount++;
+          playSound('hitCorrect');
+
+          // Zarah Hijau
+          for (let k = 0; k < 18; k++) {
+            particles.push({
+              x: obs.x,
+              y: obs.y + obs.height / 2,
+              radius: Math.random() * 5 + 3,
+              color: '#22c55e',
+              vx: (Math.random() - 0.5) * 6,
+              vy: (Math.random() - 0.5) * 6,
+              life: 25
+            });
+          }
+
+          if (comboCount >= 3) {
+            if (lives < 5) {
+              lives++;
+              playSound('heal');
+              showFeedback("KOMBO 3x! +1 NYAWA ❤️", "#db2777");
+            } else {
+              showFeedback("KOMBO 3x! TEPAT! +10", "#16a34a");
+            }
+            comboCount = 0;
+          } else {
+            showFeedback("TEPAT! +10", "#16a34a");
+          }
+
+          // BERSIHKAN SKRIN & MULA GRACE PERIOD UNTUK TUGASAN BAHARU
+          obstacles = []; // Buang semua papan sedia ada di skrin
+          setNextTargetCategory();
+          spawnGraceTimer = 100; // 2 Saat masa membaca tugasan baharu tanpa halangan!
+          break; // Keluar dari loop update papan
+        } else {
+          // LANGGAR JAWAPAN SALAH
+          score = Math.max(0, score - 3);
+          lives--;
+          comboCount = 0;
+          screenShake = 12;
+          playSound('hitWrong');
+          showFeedback("TERLANGGAR SALAH! -3", "#dc2626");
+
+          // Zarah Merah
+          for (let k = 0; k < 18; k++) {
+            particles.push({
+              x: obs.x,
+              y: obs.y + obs.height / 2,
+              radius: Math.random() * 5 + 3,
+              color: '#ef4444',
+              vx: (Math.random() - 0.5) * 6,
+              vy: (Math.random() - 0.5) * 6,
+              life: 25
+            });
+          }
+
+          if (lives <= 0) {
+            endGame("💔 MOTOSIKAL ROSAK / NYAWA HABIS!");
+            return;
+          }
+        }
+      }
+
+      // Berjaya Elak Jawapan Salah (Pas Melepasi Bawah Skrin)
+      if (obs.y > canvas.height + 20 && !obs.passed && !obs.hit) {
+        obs.passed = true;
+        if (!obs.isMatch) {
+          score += 2; // Bonus Elak Jawapan Salah
+        }
+      }
+    }
+
+    // Buang Papan Jawapan Melepas
+    obstacles = obstacles.filter(obs => obs.y < canvas.height + 100);
+
+    if (feedbackTimer > 0) feedbackTimer--;
+    if (screenShake > 0) screenShake--;
+  }
+
+  function drawBackground() {
+    // Rumput Tepi Jalan Raya (Bright Green)
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Bahagian Jalan Raya Asfalt (Clean Bright Grey Highway)
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
+
+    // Sempadan Luar Jalan Raya (Bahu Jalan Putih)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(roadLeft - 6, 0, 6, canvas.height);
+    ctx.fillRect(roadLeft + roadWidth, 0, 6, canvas.height);
+
+    // Garisan Putus Kuning Pembahagi Lorong
+    ctx.fillStyle = '#facc15';
+    for (let l = 1; l < 4; l++) {
+      let lx = roadLeft + laneWidth * l;
+      for (let y = -roadOffsetY; y < canvas.height; y += 40) {
+        ctx.fillRect(lx - 2.5, y, 5, 22);
+      }
+    }
+
+    // Pokok-pokok Landskap Tepi Jalan
+    trees.forEach(t => {
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#166534';
+      ctx.beginPath();
+      ctx.arc(t.x - t.radius * 0.3, t.y - t.radius * 0.3, t.radius * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function drawMotorcycle() {
+    ctx.save();
+    ctx.translate(bike.x, bike.y);
+
+    // Pancaran Lampu Hadapan Motosikal
+    let beamGrad = ctx.createLinearGradient(0, -10, 0, -95);
+    beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.75)');
+    beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(-10, -10);
+    ctx.lineTo(-26, -95);
+    ctx.lineTo(26, -95);
+    ctx.lineTo(10, -10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tayar Depan & Tayar Belakang
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-4, -bike.height / 2 - 2, 8, 14); // Tayar Depan
+    ctx.fillRect(-5, bike.height / 2 - 10, 10, 16); // Tayar Belakang
+
+    // Badan / Kerangka Motosikal Sukan
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 11, 24, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#0369a1';
+    ctx.fillRect(-4, -18, 8, 30);
+
+    // Pemegang / Handlebars
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(-18, -16, 36, 4);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-20, -18, 5, 8);
+    ctx.fillRect(15, -18, 5, 8);
+
+    // Penunggang Motosikal
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.roundRect(-12, 0, 24, 22, 6);
+    ctx.fill();
+
+    // Topi Keledar Penunggang
+    ctx.fillStyle = '#e11d48';
+    ctx.beginPath();
+    ctx.arc(0, 8, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Visor Topi Keledar
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 6, 3, 0, 0, Math.PI);
+    ctx.fill();
+
+    // Lampu Belakang Motosikal
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-5, bike.height / 2 + 2, 10, 3);
+
+    ctx.restore();
+  }
+
+  function drawObstacle(obs) {
+    if (obs.hit) return;
+
+    ctx.save();
+    ctx.translate(obs.x, obs.y);
+
+    // Papan Signboard Terang
+    ctx.fillStyle = '#fef08a'; // Bright Yellow
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(-obs.width / 2, 0, obs.width, obs.height, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Teks Jawapan Clear & Multiline
+    ctx.fillStyle = '#0f172a';
+    ctx.font = "bold 11px 'Segoe UI', Arial";
+    ctx.textAlign = "center";
+
+    let words = obs.text.split(" ");
+    if (words.length > 2) {
+      let mid = Math.ceil(words.length / 2);
+      let line1 = words.slice(0, mid).join(" ");
+      let line2 = words.slice(mid).join(" ");
+      ctx.fillText(line1, 0, obs.height / 2 - 4);
+      ctx.fillText(line2, 0, obs.height / 2 + 10);
+    } else {
+      ctx.fillText(obs.text, 0, obs.height / 2 + 4);
+    }
+
+    ctx.restore();
+  }
+
+  function drawHUD() {
+    // Top Task Banner
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(15, 10, canvas.width - 30, 68);
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(15, 10, canvas.width - 30, 68);
+
+    ctx.fillStyle = "#1e40af";
+    ctx.font = "bold 12px 'Segoe UI', Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("TUGASAN: LANGGAR JAWAPAN TEPAT / ELAK JAWAPAN SALAH:", canvas.width / 2, 28);
+
+    ctx.fillStyle = "#d97706";
+    ctx.font = "bold 18.5px 'Segoe UI', Arial";
+    ctx.fillText(`CARI: ${currentTargetCat.label}`, canvas.width / 2, 57);
+
+    // Bottom Status Bar
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, canvas.height - 36, canvas.width, 36);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, canvas.height - 36, canvas.width, 36);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 14px 'Segoe UI', Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Penunggang: ${studentName}`, 20, canvas.height - 13);
+
+    let hearts = "❤️".repeat(lives);
+    ctx.textAlign = "center";
+    ctx.fillText(`Nyawa: ${hearts}   |   ⏳ Masa: ${timer}s`, canvas.width / 2, canvas.height - 13);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 20, canvas.height - 13);
+
+    // Feedback Popup Dialog
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(canvas.width / 2 - 175, canvas.height / 2 - 30, 350, 60);
+      ctx.strokeStyle = "#0284c7";
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(canvas.width / 2 - 175, canvas.height / 2 - 30, 350, 60);
+
+      ctx.fillStyle = feedbackMessage.color;
+      ctx.font = "bold 18px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage.text, canvas.width / 2, canvas.height / 2 + 6);
+    }
+  }
+
+  function draw() {
+    ctx.save();
+    if (screenShake > 0) {
+      ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+    }
+
+    drawBackground();
+
+    // Zarah Asap & Kesan
+    particles.forEach(p => {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    obstacles.forEach(obs => drawObstacle(obs));
+    drawMotorcycle();
+    drawHUD();
+
+    ctx.restore();
+  }
+
+  function gameLoop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame(titleText) {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('endTitle').innerText = titleText;
+    document.getElementById('finalName').innerText = `Tunggangan Cemerlang, ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
