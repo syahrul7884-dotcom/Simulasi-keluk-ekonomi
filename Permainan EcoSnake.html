@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EcoSnake - Teori Perlakuan Pengguna</title>
+  <style>
+    * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #064e3b;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 95vw;
+      max-width: 900px;
+      aspect-ratio: 16 / 9;
+      border: 4px solid #10b981;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.4);
+      background: #022c22;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(2, 44, 34, 0.96);
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+
+    input[type="text"] {
+      padding: 12px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 2px solid #34d399;
+      margin-bottom: 15px;
+      text-align: center;
+      outline: none;
+      width: 80%;
+      max-width: 280px;
+      background: #065f46;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 12px 32px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      background: #059669;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+      transition: all 0.2s;
+    }
+    button:active { background: #047857; transform: scale(0.96); }
+
+    .rules-box {
+      background: #064e3b;
+      border: 2px solid #f59e0b;
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 15px;
+      max-width: 700px;
+      width: 100%;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* Mobile D-Pad Controls */
+    .dpad-container {
+      position: absolute;
+      bottom: 15px;
+      right: 25px;
+      width: 130px;
+      height: 130px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      z-index: 5;
+    }
+
+    .btn-dpad {
+      background: rgba(16, 185, 129, 0.35);
+      border: 2px solid #34d399;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      user-select: none;
+      backdrop-filter: blur(4px);
+    }
+    .btn-dpad:active { background: rgba(52, 211, 153, 0.8); }
+
+    #dUp { grid-column: 2; grid-row: 1; }
+    #dLeft { grid-column: 1; grid-row: 2; }
+    #dRight { grid-column: 3; grid-row: 2; }
+    #dDown { grid-column: 2; grid-row: 3; }
+
+    #rotateNotice {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #064e3b;
+      z-index: 999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      color: #34d399;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    @media screen and (orientation: portrait) and (max-width: 900px) {
+      #rotateNotice { display: flex; }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Amaran Mod Portrait -->
+<div id="rotateNotice">
+  <div style="font-size: 50px; margin-bottom: 15px;">🐍📱</div>
+  SILA PUSINGKAN TELEFON ANDA<br>KE KEDUDUKAN MELINTANG (LANDSCAPE)
+  <div style="font-size: 14px; color: #a7f3d0; margin-top: 10px; font-weight: normal;">
+    Untuk kawalan EcoSnake & pemandangan padang terbaik!
+  </div>
+</div>
+
+<div id="gameContainer">
+  <!-- Skrin Mula -->
+  <div id="startScreen" class="screen">
+    <h1 style="color: #34d399; margin-bottom: 5px; font-size: 28px;">🐍 ECO SNAKE</h1>
+    <h3 style="color: #a7f3d0; font-weight: 400; margin-bottom: 12px; font-size: 16px;">Topik: Teori Perlakuan Pengguna</h3>
+    
+    <div class="rules-box">
+      <b style="color: #f59e0b; font-size: 14px;">📌 CARA BERMAIN:</b><br>
+      • Kawal **Ular Ekonomi** anda di dalam padang.<br>
+      • <b>KAWALAN:</b> Gunakan <span style="color: #34d399; font-weight:bold;">PANAH KEKUNCI / WASD</span> atau <span style="color: #34d399; font-weight:bold;">D-PAD SENTUH SKRIN</span>.<br>
+      • <span style="color: #4ade80; font-weight:bold;">MAKAN</span> blok jawapan yang <b>SEPADAN</b> dengan Tugasan (+10 Markah & Ular Panjang).<br>
+      • <span style="color: #f87171; font-weight:bold;">ELAK</span> blok jawapan <b>SALAH</b> (Termakan: -3 Markah & -1 Nyawa ❤️)!<br>
+      • 🌟 <b>Bonus:</b> 3 makan tepat berturut-turut akan tambah <span style="color: #ec4899; font-weight:bold;">+1 Nyawa ❤️</span>.
+    </div>
+
+    <input type="text" id="playerName" placeholder="Nama Pelajar / Pemain" maxlength="15">
+    <button onclick="startGame()">Mula Permainan</button>
+  </div>
+
+  <!-- Skrin Tamat -->
+  <div id="endScreen" class="screen hidden">
+    <h1 id="endTitle" style="color: #34d399; font-size: 32px;">🏁 TAMAT PERMAINAN!</h1>
+    <h2 id="finalName" style="color: #f59e0b; font-size: 22px;"></h2>
+    <h3 style="font-size: 24px; color: #ffffff;">Markah Akhir: <span id="finalScore" style="color: #4ade80;">0</span></h3>
+    <button onclick="resetGame()" style="margin-top: 15px;">Main Semula</button>
+  </div>
+
+  <!-- Mobile D-Pad Controls -->
+  <div class="dpad-container">
+    <div class="btn-dpad" id="dUp">▲</div>
+    <div class="btn-dpad" id="dLeft">◄</div>
+    <div class="btn-dpad" id="dRight">►</div>
+    <div class="btn-dpad" id="dDown">▼</div>
+  </div>
+
+  <!-- Canvas Permainan -->
+  <canvas id="gameCanvas" width="900" height="500"></canvas>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Tetapan Grid Snake
+  const gridSize = 25; 
+  const gridWidth = Math.floor(canvas.width / gridSize); // 36 cols
+  const gridHeight = Math.floor((canvas.height - 90) / gridSize); // 16 rows
+  const topOffsetY = 90; // Ruang HUD di atas
+
+  // Lukisan Rounded Rectangle
+  function drawRoundedRect(ctx, x, y, width, height, radius, fill = true, stroke = false) {
+    if (radius > width / 2) radius = width / 2;
+    if (radius > height / 2) radius = height / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, radius);
+    ctx.arcTo(x + width, y + height, x, y + height, radius);
+    ctx.arcTo(x, y + height, x, y, radius);
+    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // Audio Context Mesra Mobile
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'turn') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+      } else if (type === 'eat') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+      } else if (type === 'heal') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+      } else if (type === 'damage') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(70, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+      }
+    } catch(e) {}
+  }
+
+  // Database Soalan & Jawapan (Teori Perlakuan Pengguna)
+  const categories = [
+    {
+      id: 'MAKSUD_UTILITI',
+      label: 'MAKSUD UTILITI',
+      items: ['Kepuasan Pengguna', 'Tahap Kepuasan', 'Kepuasan Guna Barangan']
+    },
+    {
+      id: 'FORMULA_MU',
+      label: 'FORMULA UTILITI SUT (MU)',
+      items: ['ΔTU / ΔQ', 'Perubahan TU / ΔQ', '(TU1 - TU0) / (Q1 - Q0)']
+    },
+    {
+      id: 'HUBUNGAN_Q_MU',
+      label: 'HUBUNGAN KUANTITI (Q) DENGAN MU',
+      items: ['Hubungan Negatif', 'Mencerun Ke Bawah', 'Hubungan Terbalik']
+    },
+    {
+      id: 'KELUK_TU',
+      label: 'CIRI KELUK JUMLAH UTILITI (TU)',
+      items: ['Meningkat Lalu Menurun', 'Mencapai Maksimum', 'Cembung Ke Atas']
+    },
+    {
+      id: 'KELUK_MU',
+      label: 'CIRI KELUK UTILITI SUT (MU)',
+      items: ['Mencerun Ke Bawah', 'Sentiasa Menurun', 'Boleh Bernilai Negatif']
+    },
+    {
+      id: 'TU_MAX_MU',
+      label: 'HUBUNGAN APABILA TU MAKSIMUM',
+      items: ['MU = 0', 'Utiliti Sut Sifar', 'Nilai MU Adalah 0']
+    },
+    {
+      id: 'Q_BERTAMBAH',
+      label: 'APABILA KUANTITI (Q) BERTAMBAH...',
+      items: ['MU Semakin Menurun', 'Utiliti Sut Berkurang', 'Kepuasan Tambahan Menurun']
+    },
+    {
+      id: 'Q_BERKURANG',
+      label: 'APABILA KUANTITI (Q) BERKURANG...',
+      items: ['MU Semakin Bertambah', 'Utiliti Sut Meningkat', 'Kepuasan Tambahan Naik']
+    }
+  ];
+
+  const generalDistractors = [
+    'Keuntungan Maksimum', 'Jumlah Hasil (TR)', 'Kos Purata (AC)', 'Hubungan Positif',
+    'MU Maksimum', 'TU = 0', 'Sentiasa Mendatar', 'Berbentuk U', 'Pengeluaran Maks'
+  ];
+
+  // Variabel Permainan
+  let studentName = "";
+  let score = 0;
+  let timer = 60;
+  let lives = 5;
+  let comboCount = 0;
+  let timerInterval;
+  let gameInterval;
+  let isPlaying = false;
+
+  let currentTargetCat = null;
+  let foods = [];
+  let feedbackMessage = "";
+  let feedbackTimer = 0;
+
+  // State Ular
+  let snake = [];
+  let dir = { x: 1, y: 0 };
+  let nextDir = { x: 1, y: 0 };
+
+  function startGame() {
+    initAudio();
+    const input = document.getElementById('playerName').value.trim();
+    if (!input) {
+      alert("Sila masukkan nama anda!");
+      return;
+    }
+    studentName = input;
+    document.getElementById('startScreen').classList.add('hidden');
+
+    score = 0;
+    timer = 60;
+    lives = 5;
+    comboCount = 0;
+    isPlaying = true;
+
+    // Reset Snake (Panjang Asal 4 Blok)
+    snake = [
+      { x: 8, y: 8 },
+      { x: 7, y: 8 },
+      { x: 6, y: 8 },
+      { x: 5, y: 8 }
+    ];
+    dir = { x: 1, y: 0 };
+    nextDir = { x: 1, y: 0 };
+
+    setNextTargetCategory();
+    spawnFoods();
+
+    if (timerInterval) clearInterval(timerInterval);
+    if (gameInterval) clearInterval(gameInterval);
+
+    timerInterval = setInterval(() => {
+      timer--;
+      if (timer <= 0) endGame("🏁 MASA TAMAT!");
+    }, 1000);
+
+    // Kelajuan Pergerakan Ular (Setiap 130ms)
+    gameInterval = setInterval(gameTick, 130);
+  }
+
+  function setNextTargetCategory() {
+    const randomIndex = Math.floor(Math.random() * categories.length);
+    currentTargetCat = categories[randomIndex];
+  }
+
+  function spawnFoods() {
+    foods = [];
+    // Spawn 3 Blok Makanan pada skrin
+    const matchIndex = Math.floor(Math.random() * 3);
+
+    for (let i = 0; i < 3; i++) {
+      let isMatch = (i === matchIndex);
+      let text;
+
+      if (isMatch) {
+        text = currentTargetCat.items[Math.floor(Math.random() * currentTargetCat.items.length)];
+      } else {
+        if (Math.random() < 0.5) {
+          let otherCats = categories.filter(c => c.id !== currentTargetCat.id);
+          let randCat = otherCats[Math.floor(Math.random() * otherCats.length)];
+          text = randCat.items[Math.floor(Math.random() * randCat.items.length)];
+        } else {
+          text = generalDistractors[Math.floor(Math.random() * generalDistractors.length)];
+        }
+      }
+
+      // Cari lokasi bebas untuk makanan
+      let pos = getFreeGridPosition();
+      foods.push({
+        x: pos.x,
+        y: pos.y,
+        text: text,
+        isMatch: isMatch
+      });
+    }
+  }
+
+  function getFreeGridPosition() {
+    let x, y, isOccupied;
+    do {
+      isOccupied = false;
+      x = Math.floor(Math.random() * (gridWidth - 4)) + 2;
+      y = Math.floor(Math.random() * (gridHeight - 4)) + 2;
+
+      // Elak bertindih dengan badan ular
+      for (let s of snake) {
+        if (s.x === x && s.y === y) { isOccupied = true; break; }
+      }
+      // Elak bertindih dengan makanan lain
+      for (let f of foods) {
+        if (f.x === x && f.y === y) { isOccupied = true; break; }
+      }
+    } while (isOccupied);
+
+    return { x, y };
+  }
+
+  function changeDirection(newX, newY) {
+    if (!isPlaying) return;
+    // Halang pusingan terus 180 darjah
+    if (newX !== -dir.x || newY !== -dir.y) {
+      nextDir = { x: newX, y: newY };
+      playSound('turn');
+    }
+  }
+
+  // Input Kekunci
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') changeDirection(0, -1);
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') changeDirection(0, 1);
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') changeDirection(-1, 0);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') changeDirection(1, 0);
+  });
+
+  // Input Sentuhan D-Pad
+  const btnUp = document.getElementById('dUp');
+  const btnDown = document.getElementById('dDown');
+  const btnLeft = document.getElementById('dLeft');
+  const btnRight = document.getElementById('dRight');
+
+  const addDpadListener = (elem, x, y) => {
+    elem.addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(x, y); }, { passive: false });
+    elem.addEventListener('mousedown', (e) => { e.preventDefault(); changeDirection(x, y); });
+  };
+
+  addDpadListener(btnUp, 0, -1);
+  addDpadListener(btnDown, 0, 1);
+  addDpadListener(btnLeft, -1, 0);
+  addDpadListener(btnRight, 1, 0);
+
+  function showFeedback(msg, color) {
+    feedbackMessage = { text: msg, color: color };
+    feedbackTimer = 12;
+  }
+
+  function gameTick() {
+    if (!isPlaying) return;
+
+    dir = nextDir;
+    let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // Kebolehan Wrap-Around Dinding (Tembus Sempadan)
+    if (head.x < 0) head.x = gridWidth - 1;
+    if (head.x >= gridWidth) head.x = 0;
+    if (head.y < 0) head.y = gridHeight - 1;
+    if (head.y >= gridHeight) head.y = 0;
+
+    // Periksa pelanggaran dengan badan sendiri
+    for (let i = 1; i < snake.length; i++) {
+      if (head.x === snake[i].x && head.y === snake[i].y) {
+        lives--;
+        playSound('damage');
+        showFeedback("TERLANGGAR BADAN! -1 NYAWA", "#f87171");
+        if (lives <= 0) {
+          endGame("💔 ULAR TERLANGGAR BADAN SENDIRI!");
+          return;
+        }
+      }
+    }
+
+    snake.unshift(head);
+
+    // Periksa makan jawapan
+    let eatenIndex = -1;
+    for (let i = 0; i < foods.length; i++) {
+      let f = foods[i];
+      // Kebenaran zon makan (Jarak 1.2 grid)
+      if (Math.abs(head.x - f.x) <= 1 && Math.abs(head.y - f.y) <= 1) {
+        eatenIndex = i;
+        break;
+      }
+    }
+
+    if (eatenIndex !== -1) {
+      let eaten = foods[eatenIndex];
+
+      if (eaten.isMatch) {
+        score += 10;
+        comboCount++;
+
+        if (comboCount >= 3) {
+          if (lives < 5) {
+            lives++;
+            playSound('heal');
+            showFeedback("KOMBO 3x! +1 NYAWA ❤️", "#ec4899");
+          } else {
+            playSound('eat');
+            showFeedback("KOMBO 3x! TEPAT! +10", "#4ade80");
+          }
+          comboCount = 0;
+        } else {
+          playSound('eat');
+          showFeedback("TEPAT! +10", "#4ade80");
+        }
+
+        setNextTargetCategory();
+        spawnFoods();
+      } else {
+        score = Math.max(0, score - 3);
+        lives--;
+        comboCount = 0;
+        playSound('damage');
+        showFeedback("SALAH MAKAN! -3", "#f87171");
+
+        // Potong ekor jika tersalah makan
+        if (snake.length > 3) snake.pop();
+
+        if (lives <= 0) {
+          endGame("💔 NYAWA HABIS!");
+          return;
+        }
+        spawnFoods();
+      }
+    } else {
+      snake.pop(); // Buang ekor jika tidak makan
+    }
+
+    if (feedbackTimer > 0) feedbackTimer--;
+    draw();
+  }
+
+  function drawBackground() {
+    ctx.fillStyle = "#022c22";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid Garisan Padang
+    ctx.strokeStyle = "#064e3b";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= canvas.width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, topOffsetY);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = topOffsetY; y <= canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+  }
+
+  function drawSnake() {
+    for (let i = 0; i < snake.length; i++) {
+      let part = snake[i];
+      let px = part.x * gridSize;
+      let py = topOffsetY + part.y * gridSize;
+
+      if (i === 0) {
+        // Kepala Ular
+        ctx.fillStyle = "#34d399";
+        drawRoundedRect(ctx, px + 1, py + 1, gridSize - 2, gridSize - 2, 8, true, false);
+
+        // Mata Ular
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(px + gridSize / 3, py + gridSize / 3, 3, 0, Math.PI * 2);
+        ctx.arc(px + (2 * gridSize) / 3, py + gridSize / 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Badan Ular
+        ctx.fillStyle = i % 2 === 0 ? "#10b981" : "#059669";
+        drawRoundedRect(ctx, px + 2, py + 2, gridSize - 4, gridSize - 4, 6, true, false);
+      }
+    }
+  }
+
+  function drawFoods() {
+    foods.forEach(f => {
+      let px = f.x * gridSize;
+      let py = topOffsetY + f.y * gridSize;
+
+      // Blok Makanan / Banner Jawapan
+      ctx.fillStyle = "#f59e0b";
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, px - 35, py - 10, 95, 36, 6, true, true);
+
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 10px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+
+      let words = f.text.split(" ");
+      if (words.length > 2) {
+        let mid = Math.ceil(words.length / 2);
+        let line1 = words.slice(0, mid).join(" ");
+        let line2 = words.slice(mid).join(" ");
+        ctx.fillText(line1, px + 12, py + 4);
+        ctx.fillText(line2, px + 12, py + 16);
+      } else {
+        ctx.fillText(f.text, px + 12, py + 10);
+      }
+    });
+  }
+
+  function drawHUD() {
+    // Top Panel Tugasan
+    ctx.fillStyle = "#022c22";
+    drawRoundedRect(ctx, 15, 8, canvas.width - 30, 75, 8, true, false);
+    ctx.strokeStyle = "#34d399";
+    ctx.lineWidth = 3;
+    drawRoundedRect(ctx, 15, 8, canvas.width - 30, 75, 8, false, true);
+
+    ctx.fillStyle = "#a7f3d0";
+    ctx.font = "bold 12px 'Segoe UI', Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("TUGASAN ECO SNAKE: MAKAN JAWAPAN TEPAT BAGI:", canvas.width / 2, 26);
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "bold 18px 'Segoe UI', Arial";
+    ctx.fillText(`SOALAN: ${currentTargetCat.label}`, canvas.width / 2, 56);
+
+    // Bottom Bar Info
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px 'Segoe UI', Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Pemain: ${studentName}`, 25, topOffsetY - 10);
+
+    let hearts = "❤️".repeat(lives);
+    ctx.textAlign = "center";
+    ctx.fillText(`Nyawa: ${hearts}   |   ⏳ Masa: ${timer}s`, canvas.width / 2, topOffsetY - 10);
+
+    ctx.textAlign = "right";
+    ctx.fillText(`🏆 Markah: ${score}`, canvas.width - 25, topOffsetY - 10);
+
+    // Maklum Balas
+    if (feedbackTimer > 0) {
+      ctx.fillStyle = "rgba(2, 44, 34, 0.95)";
+      drawRoundedRect(ctx, canvas.width / 2 - 150, canvas.height / 2 - 25, 300, 50, 8, true, false);
+      ctx.strokeStyle = "#34d399";
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, canvas.width / 2 - 150, canvas.height / 2 - 25, 300, 50, 8, false, true);
+
+      ctx.fillStyle = feedbackMessage.color;
+      ctx.font = "bold 18px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(feedbackMessage.text, canvas.width / 2, canvas.height / 2 + 6);
+    }
+  }
+
+  function draw() {
+    drawBackground();
+    drawFoods();
+    drawSnake();
+    drawHUD();
+  }
+
+  function endGame(titleText) {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    clearInterval(gameInterval);
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('endTitle').innerText = titleText;
+    document.getElementById('finalName').innerText = `Hebat, ${studentName}!`;
+    document.getElementById('finalScore').innerText = score;
+  }
+
+  function resetGame() {
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
