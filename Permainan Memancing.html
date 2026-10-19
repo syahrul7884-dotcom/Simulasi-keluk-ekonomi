@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Permainan Memancing Nelayan & Harta Karun Laut</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .custom-shadow {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 md:p-4 text-slate-800">
+
+  <div class="w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-3xl custom-shadow border-4 border-amber-300/80 overflow-hidden relative">
+
+    <!-- 1. SKRIN MULA & ARAHAN -->
+    <div id="start-screen" class="p-6 md:p-8 flex flex-col items-center text-center space-y-6">
+      <div class="inline-block bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide uppercase border border-amber-300 shadow-sm">
+        🎮 Edisi Pembelajaran & Kebijaksanaan Laut
+      </div>
+
+      <h1 class="text-3xl md:text-5xl font-bold text-sky-900 leading-tight">
+        🎣 Permainan Memancing Nelayan <br class="hidden sm:inline">& <span class="text-amber-500">Harta Karun Laut</span>
+      </h1>
+
+      <!-- Kad Arahan & Senarai Markah -->
+      <div class="w-full bg-sky-50 rounded-2xl p-4 md:p-6 border-2 border-sky-200 text-left space-y-4">
+        <h3 class="text-lg md:text-xl font-bold text-sky-900 flex items-center gap-2">
+          <span>📖</span> Cara Bermain & Rules Tanda Markah:
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm md:text-base">
+          <div class="bg-white p-3 rounded-xl border border-sky-100 shadow-sm flex items-center space-x-3">
+            <span class="text-2xl">🐟</span>
+            <div>
+              <p class="font-bold text-slate-700">Ikan-Ikan Laut</p>
+              <p class="text-xs md:text-sm text-emerald-600 font-semibold">+10 hingga +30 Mata</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border border-amber-200 bg-amber-50/50 shadow-sm flex items-center space-x-3">
+            <span class="text-2xl">👑</span>
+            <div>
+              <p class="font-bold text-amber-900">Peti Harta Karun</p>
+              <p class="text-xs md:text-sm text-amber-600 font-bold">+50 Mata (Bonus Super!)</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border border-rose-100 shadow-sm flex items-center space-x-3">
+            <span class="text-2xl">🦑</span>
+            <div>
+              <p class="font-bold text-slate-700">Sotong Merah</p>
+              <p class="text-xs md:text-sm text-rose-600 font-semibold">-5 Mata (Elakkan!)</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border border-rose-100 shadow-sm flex items-center space-x-3">
+            <span class="text-2xl">🦐</span>
+            <div>
+              <p class="font-bold text-slate-700">Udang Karang</p>
+              <p class="text-xs md:text-sm text-rose-600 font-semibold">-5 Mata (Elakkan!)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-sky-100/70 p-3 rounded-xl text-xs md:text-sm text-sky-900 space-y-1 border border-sky-200">
+          <p>👉 <strong>Kawalan:</strong> Gerakkan tetikus/sentuh skrin untuk menggerakkan Kapal Nelayan.</p>
+          <p>👉 <strong>Tolak Kail:</strong> Klik tetikus atau tekan <strong>Spacebar</strong> untuk melepaskan kail ke dasar laut.</p>
+        </div>
+      </div>
+
+      <!-- Borang Nama -->
+      <div class="w-full max-w-md space-y-3">
+        <label for="player-name" class="block text-sm font-bold text-slate-600 uppercase tracking-wider">Nama Pelajar / Pemain:</label>
+        <input type="text" id="player-name" placeholder="Tulis nama anda di sini..." 
+               class="w-full px-5 py-3.5 text-center text-lg font-bold text-sky-900 bg-slate-50 border-2 border-sky-300 rounded-2xl focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-200 transition-all placeholder:font-normal placeholder:text-slate-400"
+               maxlength="20">
+        <button onclick="startGame()" 
+                class="w-full py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-sky-950 font-bold text-xl rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 transition-all border-b-4 border-amber-600">
+          🎣 MULA MEMANCING!
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. SKRIN PERMAINAN (CANVAS) -->
+    <div id="game-screen" class="hidden relative p-3 md:p-4">
+      <!-- Papan Pemuka / Dashboard HUD -->
+      <div class="flex flex-wrap items-center justify-between bg-sky-900 text-white px-4 py-2.5 rounded-2xl mb-3 shadow-inner border border-sky-700 text-sm md:text-base font-semibold">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">🧑‍🌾</span>
+          <span id="hud-name" class="text-amber-300 font-bold">Pemain</span>
+        </div>
+        <div class="flex items-center space-x-2 bg-sky-950/60 px-3 py-1 rounded-xl border border-sky-700">
+          <span>🏆 Mata:</span>
+          <span id="hud-score" class="text-2xl font-bold text-amber-400">0</span>
+        </div>
+        <div class="flex items-center space-x-2 bg-sky-950/60 px-3 py-1 rounded-xl border border-sky-700">
+          <span>⏳ Masa:</span>
+          <span id="hud-timer" class="text-2xl font-bold text-emerald-400">45</span>s
+        </div>
+      </div>
+
+      <!-- Canvas Permainan -->
+      <div class="relative w-full rounded-2xl overflow-hidden border-4 border-sky-800 shadow-md bg-sky-300">
+        <canvas id="gameCanvas" class="w-full h-[450px] md:h-[500px] cursor-crosshair block"></canvas>
+      </div>
+    </div>
+
+    <!-- 3. SKRIN KEPUTUSAN / PAPAN SKOR -->
+    <div id="end-screen" class="hidden p-6 md:p-8 flex flex-col items-center text-center space-y-6">
+      <div class="text-5xl md:text-6xl animate-bounce">🏆</div>
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold text-sky-900">Masa Telah Tamat!</h2>
+        <p class="text-slate-600 mt-1">Syabas dan tahniah di atas usaha anda!</p>
+      </div>
+
+      <!-- Kad Laporan Skor -->
+      <div class="w-full max-w-md bg-sky-50 border-2 border-sky-200 rounded-2xl p-5 space-y-4 shadow-sm">
+        <div class="border-b border-sky-200 pb-3">
+          <p class="text-sm text-slate-500 uppercase tracking-wide font-bold">Pemain</p>
+          <p id="final-name" class="text-2xl font-bold text-sky-900">Nama Pelajar</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 py-2">
+          <div class="bg-white p-3 rounded-xl border border-sky-100">
+            <p class="text-xs text-slate-500 font-bold">JUMLAH MATA</p>
+            <p id="final-score" class="text-3xl font-extrabold text-amber-500">0</p>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-sky-100 flex flex-col justify-center">
+            <p class="text-xs text-slate-500 font-bold">GELARAN NELAYAN</p>
+            <p id="final-badge" class="text-base font-bold text-sky-800 mt-1">Nelayan Handal</p>
+          </div>
+        </div>
+
+        <!-- Ringkasan Tangkapan -->
+        <div class="bg-white p-3.5 rounded-xl border border-sky-100 text-left text-xs md:text-sm space-y-1.5">
+          <p class="font-bold text-slate-700 border-b pb-1">📊 Ringkasan Tangkapan:</p>
+          <div class="flex justify-between text-slate-600">
+            <span>🐟 Ikan Ditangkap:</span>
+            <span id="count-fish" class="font-bold text-emerald-600">0</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>👑 Peti Harta Karun:</span>
+            <span id="count-treasure" class="font-bold text-amber-600">0</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>🦑 Sotong & 🦐 Udang:</span>
+            <span id="count-penalty" class="font-bold text-rose-600">0</span>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="restartGame()" 
+              class="w-full max-w-md py-4 bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xl rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 transition-all border-b-4 border-emerald-700">
+        🔄 MAIN SEMULA
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- Web Audio API (Sintesis Kesan Bunyi) ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'catch') {
+        // Bunyi tangkap ikan
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'treasure') {
+        // Bunyi Harta Karun (Fanfare pendek)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+        osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else if (type === 'penalty') {
+        // Bunyi penalti (Sotong / Udang)
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'reel') {
+        // Bunyi kail diturunkan
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.05);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    }
+
+    // --- Pembolehubah Permainan ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let playerName = "";
+    let score = 0;
+    let timer = 45;
+    let gameInterval = null;
+    let timerInterval = null;
+    let animationFrameId = null;
+
+    // Stat tangkapan
+    let caughtFishCount = 0;
+    let caughtTreasureCount = 0;
+    let caughtPenaltyCount = 0;
+
+    // Dimensi Logikal Canvas
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 500;
+    const WATER_LEVEL = 130;
+
+    // Objek Kapal & Kail
+    let ship = {
+      x: CANVAS_WIDTH / 2,
+      y: WATER_LEVEL - 12,
+      width: 120,
+      height: 32,
+      hookX: CANVAS_WIDTH / 2 + 40,
+      hookY: WATER_LEVEL + 10,
+      hookState: 'idle', // 'idle', 'dropping', 'retracting'
+      hookSpeed: 6.5,
+      caughtItem: null
+    };
+
+    // Objek Awan & Ombak
+    let clouds = [
+      { x: 50, y: 25, speed: 0.3, size: 35 },
+      { x: 300, y: 40, speed: 0.2, size: 25 },
+      { x: 600, y: 20, speed: 0.4, size: 40 }
+    ];
+
+    let waveOffset = 0;
+
+    // Senarai Objek Laut
+    let seaItems = [];
+    let scoreFloaters = [];
+
+    // Jenis-jenis Ikan & Objek Laut
+    const ITEM_TYPES = [
+      { type: 'fish_small', category: 'fish', points: 10, width: 32, height: 20, color: '#f97316', speed: 2.2 },
+      { type: 'fish_med', category: 'fish', points: 20, width: 44, height: 26, color: '#eab308', speed: 1.6 },
+      { type: 'fish_big', category: 'fish', points: 30, width: 56, height: 32, color: '#06b6d4', speed: 1.1 },
+      { type: 'treasure', category: 'treasure', points: 50, width: 42, height: 34, color: '#f59e0b', speed: 0.6 },
+      { type: 'squid', category: 'penalty', points: -5, width: 36, height: 36, color: '#ec4899', speed: 1.4 },
+      { type: 'shrimp', category: 'penalty', points: -5, width: 30, height: 22, color: '#f43f5e', speed: 1.8 }
+    ];
+
+    // Laraskan saiz Canvas mengikut paparan
+    function resizeCanvas() {
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+    }
+
+    // Penjanaan Objek Lautan
+    function spawnSeaItems() {
+      seaItems = [];
+      const totalItems = 10;
+      
+      for (let i = 0; i < totalItems; i++) {
+        addItem();
+      }
+    }
+
+    function addItem() {
+      // Kebarangkalian: Ikan (60%), Harta Karun (10%), Sotong/Udang (30%)
+      const rand = Math.random();
+      let selectedType;
+
+      if (rand < 0.6) {
+        const fishOptions = ITEM_TYPES.filter(t => t.category === 'fish');
+        selectedType = fishOptions[Math.floor(Math.random() * fishOptions.length)];
+      } else if (rand < 0.7) {
+        selectedType = ITEM_TYPES.find(t => t.category === 'treasure');
+      } else {
+        const penaltyOptions = ITEM_TYPES.filter(t => t.category === 'penalty');
+        selectedType = penaltyOptions[Math.floor(Math.random() * penaltyOptions.length)];
+      }
+
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      const x = dir === 1 ? -60 : CANVAS_WIDTH + 60;
+      
+      // Kedalaman spawn (Harta karun lebih dalam)
+      let minY = WATER_LEVEL + 50;
+      let maxY = CANVAS_HEIGHT - 40;
+      if (selectedType.type === 'treasure') {
+        minY = CANVAS_HEIGHT - 70;
+      }
+
+      const y = minY + Math.random() * (maxY - minY);
+
+      seaItems.push({
+        ...selectedType,
+        x: x,
+        y: y,
+        dir: dir,
+        bobOffset: Math.random() * Math.PI * 2
+      });
+    }
+
+    // Mula Permainan
+    function startGame() {
+      const inputName = document.getElementById('player-name').value.trim();
+      if (!inputName) {
+        alert("Sila masukkan nama anda sebelum memulakan permainan!");
+        return;
+      }
+
+      initAudio();
+      playerName = inputName;
+      score = 0;
+      timer = 45;
+      caughtFishCount = 0;
+      caughtTreasureCount = 0;
+      caughtPenaltyCount = 0;
+
+      document.getElementById('hud-name').innerText = playerName;
+      document.getElementById('hud-score').innerText = score;
+      document.getElementById('hud-timer').innerText = timer;
+
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+
+      resizeCanvas();
+      spawnSeaItems();
+
+      // Pasang Event Listeners
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerdown', triggerHook);
+      window.addEventListener('keydown', handleKeyDown);
+
+      // Loop Utama
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      gameLoop();
+
+      // Pemasa Permainan
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timer--;
+        document.getElementById('hud-timer').innerText = timer;
+        if (timer <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function handlePointerMove(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+
+      // Kapal hanya bergerak jika kail tidak diturunkan
+      if (ship.hookState === 'idle') {
+        ship.x = mouseX;
+        // Hadkan kapal dalam canvas
+        ship.x = Math.max(ship.width / 2 + 10, Math.min(CANVAS_WIDTH - ship.width / 2 - 10, ship.x));
+        ship.hookX = ship.x + 35;
+      }
+    }
+
+    function handleKeyDown(e) {
+      if (e.code === 'Space') {
+        triggerHook();
+      }
+    }
+
+    function triggerHook() {
+      if (ship.hookState === 'idle') {
+        ship.hookState = 'dropping';
+        playSound('reel');
+      }
+    }
+
+    // --- UTAMA: GAME LOOP & RENDERING ---
+    function gameLoop() {
+      update();
+      draw();
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    // --- KEMASKINI LOGIK (UPDATE) ---
+    function update() {
+      // 1. Pergerakan Awan
+      clouds.forEach(cloud => {
+        cloud.x += cloud.speed;
+        if (cloud.x - cloud.size > CANVAS_WIDTH) cloud.x = -cloud.size;
+      });
+
+      // 2. Animasikan Ombak
+      waveOffset += 0.05;
+
+      // 3. Logik Kail Memancing
+      if (ship.hookState === 'dropping') {
+        ship.hookY += ship.hookSpeed;
+        
+        // Cek jika sampai dasar
+        if (ship.hookY >= CANVAS_HEIGHT - 25) {
+          ship.hookState = 'retracting';
+        }
+
+        // Semak Perlanggaran dengan Objek Laut
+        seaItems.forEach((item, index) => {
+          const dist = Math.hypot(ship.hookX - item.x, ship.hookY - item.y);
+          if (dist < item.width / 1.8) {
+            ship.caughtItem = item;
+            ship.hookState = 'retracting';
+            seaItems.splice(index, 1); // Buang dari air
+
+            // Bunyi tangkapan
+            if (item.category === 'treasure') playSound('treasure');
+            else if (item.category === 'penalty') playSound('penalty');
+            else playSound('catch');
+          }
+        });
+
+      } else if (ship.hookState === 'retracting') {
+        ship.hookY -= ship.hookSpeed * 1.2;
+
+        // Bawa objek yang ditangkap bersama kail
+        if (ship.caughtItem) {
+          ship.caughtItem.x = ship.hookX;
+          ship.caughtItem.y = ship.hookY + 15;
+        }
+
+        // Kail kembali ke kapal
+        if (ship.hookY <= WATER_LEVEL + 10) {
+          ship.hookY = WATER_LEVEL + 10;
+          ship.hookState = 'idle';
+
+          // Proses Mata jika ada tangkapan
+          if (ship.caughtItem) {
+            const pts = ship.caughtItem.points;
+            score += pts;
+            if (score < 0) score = 0; // Mata tidak kurang dari 0
+
+            document.getElementById('hud-score').innerText = score;
+
+            // Kira Statistik Tangkapan
+            if (ship.caughtItem.category === 'fish') caughtFishCount++;
+            else if (ship.caughtItem.category === 'treasure') caughtTreasureCount++;
+            else if (ship.caughtItem.category === 'penalty') caughtPenaltyCount++;
+
+            // Tambah Teks Animasi Floater
+            scoreFloaters.push({
+              x: ship.hookX,
+              y: ship.hookY - 10,
+              text: (pts > 0 ? `+${pts}` : `${pts}`),
+              color: pts > 0 ? (pts >= 50 ? '#f59e0b' : '#10b981') : '#ef4444',
+              alpha: 1.0
+            });
+
+            ship.caughtItem = null;
+            addItem(); // Re-spawn objek baru
+          }
+        }
+      }
+
+      // 4. Pergerakan Objek Dalam Laut (Ikan, Sotong, Udang, Harta)
+      seaItems.forEach(item => {
+        item.x += item.speed * item.dir;
+        item.bobOffset += 0.03;
+        item.y += Math.sin(item.bobOffset) * 0.4; // Kesan terapung lembut
+
+        // Re-spawn jika keluar dari canvas
+        if (item.dir === 1 && item.x > CANVAS_WIDTH + 60) {
+          item.x = -60;
+        } else if (item.dir === -1 && item.x < -60) {
+          item.x = CANVAS_WIDTH + 60;
+        }
+      });
+
+      // 5. Kemaskini Floater Teks Mata
+      scoreFloaters.forEach((f, idx) => {
+        f.y -= 1;
+        f.alpha -= 0.02;
+        if (f.alpha <= 0) scoreFloaters.splice(idx, 1);
+      });
+    }
+
+    // --- LUKISAN GRAFIK (DRAW) ---
+    function draw() {
+      // Clear Canvas
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // A. LUKIS LANGIT
+      const skyGradient = ctx.createLinearGradient(0, 0, 0, WATER_LEVEL);
+      skyGradient.addColorStop(0, '#bae6fd');
+      skyGradient.addColorStop(1, '#e0f2fe');
+      ctx.fillStyle = skyGradient;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, WATER_LEVEL);
+
+      // Awani
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      clouds.forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 0.7, c.y - c.size * 0.2, c.size * 0.7, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 1.3, c.y, c.size * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // B. LUKIS LAUT (WATER GRADIENT)
+      const seaGradient = ctx.createLinearGradient(0, WATER_LEVEL, 0, CANVAS_HEIGHT);
+      seaGradient.addColorStop(0, '#0284c7');
+      seaGradient.addColorStop(0.5, '#0369a1');
+      seaGradient.addColorStop(1, '#0c4a6e');
+      ctx.fillStyle = seaGradient;
+      ctx.fillRect(0, WATER_LEVEL, CANVAS_WIDTH, CANVAS_HEIGHT - WATER_LEVEL);
+
+      // Ombak Permukaan Air
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.beginPath();
+      ctx.moveTo(0, WATER_LEVEL);
+      for (let x = 0; x <= CANVAS_WIDTH; x += 20) {
+        ctx.lineTo(x, WATER_LEVEL + Math.sin(x * 0.05 + waveOffset) * 4);
+      }
+      ctx.lineTo(CANVAS_WIDTH, WATER_LEVEL + 10);
+      ctx.lineTo(0, WATER_LEVEL + 10);
+      ctx.fill();
+
+      // C. LUKIS OBJEK LAUTAN (Ikan, Harta Karun, Sotong, Udang)
+      seaItems.forEach(item => drawSeaItem(item));
+
+      // D. LUKIS TALI KAIL & MATA KAIL
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ship.hookX, ship.y - 15);
+      ctx.lineTo(ship.hookX, ship.hookY);
+      ctx.stroke();
+
+      // Mata Kail
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(ship.hookX - 3, ship.hookY, 4, 0, Math.PI);
+      ctx.stroke();
+
+      // Jika ada item tersangkut pada kail
+      if (ship.caughtItem) {
+        drawSeaItem(ship.caughtItem);
+      }
+
+      // E. LUKIS KAPAL NELAYAN & NELAYAN
+      drawShipAndFisherman(ship.x, ship.y);
+
+      // F. LUKIS TEXT FLOATER MATA
+      scoreFloaters.forEach(f => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, f.alpha);
+        ctx.font = 'bold 22px Fredoka, sans-serif';
+        ctx.fillStyle = f.color;
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 4;
+        ctx.fillText(f.text, f.x - 15, f.y);
+        ctx.restore();
+      });
+    }
+
+    // Lukis Kapal & Nelayan dengan Perincian
+    function drawShipAndFisherman(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Badan Kapal (Wooden Hull)
+      ctx.fillStyle = '#78350f'; // Kayu Gelap
+      ctx.beginPath();
+      ctx.moveTo(-50, -5);
+      ctx.lineTo(45, -5);
+      ctx.lineTo(35, 18);
+      ctx.lineTo(-40, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Jalur Hiasan Kapal
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(-45, 0, 85, 4);
+
+      // Kabin Kapal
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(-30, -22, 30, 17);
+      ctx.fillStyle = '#0284c7'; // Tingkap kabin
+      ctx.fillRect(-22, -18, 10, 8);
+
+      // Bumbung Kabin
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(-33, -25, 36, 4);
+
+      // Tiang Bendera Nelayan
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(-35, -45, 3, 25);
+      // Bendera
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(-35, -45);
+      ctx.lineTo(-20, -40);
+      ctx.lineTo(-35, -35);
+      ctx.fill();
+
+      // Character Nelayan (Berdiri di belakang rod)
+      // Kepala
+      ctx.fillStyle = '#fca5a5';
+      ctx.beginPath();
+      ctx.arc(20, -22, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Topi Nelayan (Topi Jerami)
+      ctx.fillStyle = '#eab308';
+      ctx.beginPath();
+      ctx.ellipse(20, -26, 11, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Baju Nelayan
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(15, -15, 10, 10);
+
+      // Joran Memancing (Fishing Rod)
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(18, -12);
+      ctx.lineTo(35, -25);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Lukis Objek-Objek Lautan
+    function drawSeaItem(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      if (item.dir === -1) {
+        ctx.scale(-1, 1); // Pusingkan arah jika berenang ke kiri
+      }
+
+      if (item.category === 'fish') {
+        // Body
+        ctx.fillStyle = item.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, item.width / 2, item.height / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ekor
+        ctx.beginPath();
+        ctx.moveTo(-item.width / 2, 0);
+        ctx.lineTo(-item.width / 2 - 10, -item.height / 3);
+        ctx.lineTo(-item.width / 2 - 10, item.height / 3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Mata
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(item.width / 4, -item.height / 6, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(item.width / 4 + 1, -item.height / 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (item.type === 'treasure') {
+        // Peti Harta Karun
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(-item.width / 2, -item.height / 2 + 6, item.width, item.height - 6);
+
+        // Penutup Peti (Arc)
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath();
+        ctx.arc(0, -item.height / 2 + 6, item.width / 2, Math.PI, 0);
+        ctx.fill();
+
+        // Bindings Emas & Kunci
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-item.width / 2, -2, item.width, 4);
+        ctx.fillRect(-4, -2, 8, 8); // Lubang kunci
+
+      } else if (item.type === 'squid') {
+        // Sotong Merah
+        ctx.fillStyle = item.color;
+        // Kepala
+        ctx.beginPath();
+        ctx.arc(0, -6, item.width / 2.2, Math.PI, 0);
+        ctx.lineTo(item.width / 2.2, 4);
+        ctx.lineTo(-item.width / 2.2, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Mata Sotong Besar
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-5, -2, 4, 0, Math.PI * 2);
+        ctx.arc(5, -2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(-5, -2, 2, 0, Math.PI * 2);
+        ctx.arc(5, -2, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tentakel
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 3;
+        for (let i = -10; i <= 10; i += 5) {
+          ctx.beginPath();
+          ctx.moveTo(i, 4);
+          ctx.quadraticCurveTo(i + Math.sin(item.bobOffset * 2) * 4, 12, i, 18);
+          ctx.stroke();
+        }
+
+      } else if (item.type === 'shrimp') {
+        // Udang Karang
+        ctx.fillStyle = item.color;
+        
+        // Badan Melengkung
+        ctx.beginPath();
+        ctx.ellipse(0, 0, item.width / 2, item.height / 2.5, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ekor Udang
+        ctx.beginPath();
+        ctx.moveTo(-item.width / 2, 2);
+        ctx.lineTo(-item.width / 2 - 8, -4);
+        ctx.lineTo(-item.width / 2 - 8, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sungut Udang
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(item.width / 2, -2);
+        ctx.lineTo(item.width / 2 + 12, -10);
+        ctx.moveTo(item.width / 2, 0);
+        ctx.lineTo(item.width / 2 + 10, -4);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // --- TAMAT PERMAINAN & BADGE ---
+    function endGame() {
+      clearInterval(timerInterval);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerdown', triggerHook);
+      window.removeEventListener('keydown', handleKeyDown);
+
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('end-screen').classList.remove('hidden');
+
+      document.getElementById('final-name').innerText = playerName;
+      document.getElementById('final-score').innerText = score;
+
+      document.getElementById('count-fish').innerText = caughtFishCount;
+      document.getElementById('count-treasure').innerText = caughtTreasureCount;
+      document.getElementById('count-penalty').innerText = caughtPenaltyCount;
+
+      // Gelaran / Badge Nelayan berdasarkan mata
+      let badge = "Pelayar Permulaan 🛶";
+      if (score >= 250) {
+        badge = "👑 Raja Harta Karun Lautan!";
+      } else if (score >= 150) {
+        badge = "🥇 Juara Nelayan Handal!";
+      } else if (score >= 80) {
+        badge = "🥈 Penyelam Laut Dalam!";
+      } else if (score >= 40) {
+        badge = "🥉 Nelayan Gigih!";
+      }
+
+      document.getElementById('final-badge').innerText = badge;
+    }
+
+    // Restart Game
+    function restartGame() {
+      document.getElementById('end-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
